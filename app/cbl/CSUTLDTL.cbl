@@ -17,7 +17,7 @@
       * language governing permissions and limitations under the License
       ******************************************************************
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. CSUTLDTC.
+       PROGRAM-ID. CSUTLDTL.
        DATA DIVISION.
        WORKING-STORAGE SECTION.
 
@@ -87,6 +87,14 @@
            .
 
        A000-MAIN.
+                 DISPLAY 'LS-DATE: ' LS-DATE
+           DISPLAY 'LS-DATE-FORMAT: ' LS-DATE-FORMAT
+           DISPLAY 'WS-DATE-TO-TEST: ' WS-DATE-TO-TEST
+           DISPLAY 'WS-DATE-FORMAT-INPUT: ' WS-DATE-FORMAT-INPUT
+           DISPLAY 'WS-DATE: ' WS-DATE
+           DISPLAY 'WS-DATE-FMT: ' WS-DATE-FMT
+           DISPLAY 'OUTPUT-LILLIAN: ' OUTPUT-LILLIAN
+
            MOVE LS-DATE TO WS-DATE-TO-TEST
            MOVE LS-DATE-FORMAT TO WS-DATE-FORMAT-INPUT
            MOVE LS-DATE TO WS-DATE
