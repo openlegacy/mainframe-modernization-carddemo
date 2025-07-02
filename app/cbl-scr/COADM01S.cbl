@@ -48,7 +48,7 @@
          05 WS-ADMIN-OPT-TXT           PIC X(40) VALUE SPACES.
 
        COPY COCOM01Y.
-       COPY COADM02Y.
+       COPY COADM02S.
 
        COPY COADM01.
 

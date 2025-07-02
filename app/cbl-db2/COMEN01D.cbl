@@ -1,5 +1,5 @@
       ******************************************************************
-      * Program     : COMEN01S.CBL
+      * Program     : COMEN01D.CBL
       * Application : CardDemo
       * Type        : CICS COBOL Program
       * Function    : Main Menu for the Regular users
@@ -20,7 +20,7 @@
       * language governing permissions and limitations under the License
       ******************************************************************
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. COMEN01S.
+       PROGRAM-ID. COMEN01D.
        AUTHOR.     AWS.
 
        ENVIRONMENT DIVISION.
@@ -33,8 +33,8 @@
        WORKING-STORAGE SECTION.
 
        01 WS-VARIABLES.
-         05 WS-PGMNAME                 PIC X(08) VALUE 'COMEN01S'.
-         05 WS-TRANID                  PIC X(04) VALUE 'ALUM'.
+         05 WS-PGMNAME                 PIC X(08) VALUE 'COMEN01D'.
+         05 WS-TRANID                  PIC X(04) VALUE 'ADUM'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
          05 WS-USRSEC-FILE             PIC X(08) VALUE 'USRSEC  '.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
@@ -48,7 +48,7 @@
          05 WS-MENU-OPT-TXT            PIC X(40) VALUE SPACES.
 
        COPY COCOM01Y.
-       COPY COMEN02S.
+       COPY COMEN02D.
 
        COPY COMEN01.
 
@@ -80,7 +80,7 @@
                           ERRMSGO OF COMEN1AO
 
            IF EIBCALEN = 0
-               MOVE 'COSGN00S' TO CDEMO-FROM-PROGRAM
+               MOVE 'COSGN00D' TO CDEMO-FROM-PROGRAM
                PERFORM RETURN-TO-SIGNON-SCREEN
            ELSE
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
@@ -96,7 +96,7 @@
                        WHEN DFHENTER
                            PERFORM PROCESS-ENTER-KEY
                        WHEN DFHPF3
-                           MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
+                           MOVE 'COSGN00D' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-SIGNON-SCREEN
                        WHEN OTHER
                            MOVE 'Y'                       TO WS-ERR-FLG
