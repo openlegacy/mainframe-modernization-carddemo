@@ -173,8 +173,6 @@
                EVALUATE CDEMO-CU00-USR-SEL-FLG
                    WHEN 'U'
                    WHEN 'u'
-           DISPLAY
-           'DEBUG: CU00-USR-SELECTED = [' CDEMO-CU00-USR-SELECTED ']'
 
                         MOVE 'COUSR02S' TO CDEMO-TO-PROGRAM
                         MOVE WS-TRANID TO CDEMO-FROM-TRANID

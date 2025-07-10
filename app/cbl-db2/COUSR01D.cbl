@@ -1,4 +1,4 @@
-******************************************************************
+      ******************************************************************
       * Program     : COUSR01D.CBL
       * Application : CardDemo
       * Type        : CICS COBOL Program
@@ -76,46 +76,34 @@
        PROCEDURE DIVISION.
        MAIN-PARA.
 
-           DISPLAY 'COUSR01D: PROGRAM START'
-           DISPLAY 'EIBCALEN: ' EIBCALEN
 
            SET ERR-FLG-OFF TO TRUE
 
            MOVE SPACES TO WS-MESSAGE
                           ERRMSGO OF COUSR1AO
 
-           DISPLAY 'ERR-FLG INITIALIZED TO: ' WS-ERR-FLG
 
            IF EIBCALEN = 0
-               DISPLAY 'NO COMMAREA - GOING TO SIGN-ON'
                MOVE 'COSGN00D' TO CDEMO-TO-PROGRAM
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
-               DISPLAY 'COMMAREA LENGTH: ' EIBCALEN
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
                IF NOT CDEMO-PGM-REENTER
-                   DISPLAY 'FIRST TIME ENTRY'
                    SET CDEMO-PGM-REENTER    TO TRUE
                    MOVE LOW-VALUES          TO COUSR1AO
                    MOVE -1       TO FNAMEL OF COUSR1AI
                    PERFORM SEND-USRADD-SCREEN
                ELSE
-                   DISPLAY 'RE-ENTRY - PROCESSING INPUT'
                    PERFORM RECEIVE-USRADD-SCREEN
-                   DISPLAY 'EIBAID VALUE: ' EIBAID
                    EVALUATE EIBAID
                        WHEN DFHENTER
-                           DISPLAY 'ENTER KEY PRESSED'
                            PERFORM PROCESS-ENTER-KEY
                        WHEN DFHPF3
-                           DISPLAY 'PF3 PRESSED - RETURN TO ADMIN'
                            MOVE 'COADM01D' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-PREV-SCREEN
                        WHEN DFHPF4
-                           DISPLAY 'PF4 PRESSED - CLEAR SCREEN'
                            PERFORM CLEAR-CURRENT-SCREEN
                        WHEN OTHER
-                           DISPLAY 'INVALID KEY PRESSED: ' EIBAID
                            MOVE 'Y'                       TO WS-ERR-FLG
                            MOVE -1       TO FNAMEL OF COUSR1AI
                            MOVE CCDA-MSG-INVALID-KEY      TO WS-MESSAGE
@@ -124,7 +112,6 @@
                END-IF
            END-IF
 
-           DISPLAY 'PROGRAM ENDING - RETURNING TO CICS'
            EXEC CICS RETURN
                      TRANSID (WS-TRANID)
                      COMMAREA (CARDDEMO-COMMAREA)
@@ -135,62 +122,50 @@
       *----------------------------------------------------------------*
        PROCESS-ENTER-KEY.
 
-           DISPLAY 'PROCESS-ENTER-KEY: START'
 
            EVALUATE TRUE
                WHEN FNAMEI OF COUSR1AI = SPACES OR LOW-VALUES
-                   DISPLAY 'VALIDATION ERROR: FIRST NAME EMPTY'
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'First Name can NOT be empty...' TO
                                    WS-MESSAGE
                    MOVE -1       TO FNAMEL OF COUSR1AI
                    PERFORM SEND-USRADD-SCREEN
                WHEN LNAMEI OF COUSR1AI = SPACES OR LOW-VALUES
-                   DISPLAY 'VALIDATION ERROR: LAST NAME EMPTY'
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Last Name can NOT be empty...' TO
                                    WS-MESSAGE
                    MOVE -1       TO LNAMEL OF COUSR1AI
                    PERFORM SEND-USRADD-SCREEN
                WHEN USERIDI OF COUSR1AI = SPACES OR LOW-VALUES
-                   DISPLAY 'VALIDATION ERROR: USER ID EMPTY'
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'User ID can NOT be empty...' TO
                                    WS-MESSAGE
                    MOVE -1       TO USERIDL OF COUSR1AI
                    PERFORM SEND-USRADD-SCREEN
                WHEN PASSWDI OF COUSR1AI = SPACES OR LOW-VALUES
-                   DISPLAY 'VALIDATION ERROR: PASSWORD EMPTY'
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Password can NOT be empty...' TO
                                    WS-MESSAGE
                    MOVE -1       TO PASSWDL OF COUSR1AI
                    PERFORM SEND-USRADD-SCREEN
                WHEN USRTYPEI OF COUSR1AI = SPACES OR LOW-VALUES
-                   DISPLAY 'VALIDATION ERROR: USER TYPE EMPTY'
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'User Type can NOT be empty...' TO
                                    WS-MESSAGE
                    MOVE -1       TO USRTYPEL OF COUSR1AI
                    PERFORM SEND-USRADD-SCREEN
                WHEN OTHER
-                   DISPLAY 'ALL VALIDATIONS PASSED'
                    MOVE -1       TO FNAMEL OF COUSR1AI
                    CONTINUE
            END-EVALUATE
 
            IF NOT ERR-FLG-ON
-               DISPLAY 'SETTING UP USER DATA FOR INSERT'
                MOVE USERIDI  OF COUSR1AI TO SEC-USR-ID
                MOVE FNAMEI   OF COUSR1AI TO SEC-USR-FNAME
                MOVE LNAMEI   OF COUSR1AI TO SEC-USR-LNAME
                MOVE PASSWDI  OF COUSR1AI TO SEC-USR-PWD
                MOVE USRTYPEI OF COUSR1AI TO SEC-USR-TYPE
-               DISPLAY 'USER ID: ' SEC-USR-ID
-               DISPLAY 'USER TYPE: ' SEC-USR-TYPE
                PERFORM INSERT-USER-DB2-TABLE
-           ELSE
-               DISPLAY 'ERROR FLAG IS ON - SKIPPING INSERT'
            END-IF.
 
       *----------------------------------------------------------------*
@@ -198,14 +173,11 @@
       *----------------------------------------------------------------*
        RETURN-TO-PREV-SCREEN.
 
-           DISPLAY 'RETURN-TO-PREV-SCREEN: START'
 
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES
-               DISPLAY 'NO TARGET PROGRAM - DEFAULTING TO SIGN-ON'
                MOVE 'COSGN00D' TO CDEMO-TO-PROGRAM
            END-IF
 
-           DISPLAY 'RETURNING TO: ' CDEMO-TO-PROGRAM
 
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
@@ -213,7 +185,6 @@
       *    MOVE SEC-USR-TYPE TO CDEMO-USER-TYPE
            MOVE ZEROS        TO CDEMO-PGM-CONTEXT
 
-           DISPLAY 'XCTL TO: ' CDEMO-TO-PROGRAM
 
            EXEC CICS
                XCTL PROGRAM(CDEMO-TO-PROGRAM)
@@ -226,13 +197,11 @@
       *----------------------------------------------------------------*
        SEND-USRADD-SCREEN.
 
-           DISPLAY 'SEND-USRADD-SCREEN: START'
 
            PERFORM POPULATE-HEADER-INFO
 
            MOVE WS-MESSAGE TO ERRMSGO OF COUSR1AO
 
-           DISPLAY 'ERROR MESSAGE: ' WS-MESSAGE
 
            EXEC CICS SEND
                      MAP('COUSR1A')
@@ -242,14 +211,12 @@
                      CURSOR
            END-EXEC.
 
-           DISPLAY 'SCREEN SENT SUCCESSFULLY'.
 
       *----------------------------------------------------------------*
       *                      RECEIVE-USRADD-SCREEN
       *----------------------------------------------------------------*
        RECEIVE-USRADD-SCREEN.
 
-           DISPLAY 'RECEIVE-USRADD-SCREEN: START'
 
            EXEC CICS RECEIVE
                      MAP('COUSR1A')
@@ -259,15 +226,12 @@
                      RESP2(WS-REAS-CD)
            END-EXEC.
 
-           DISPLAY 'RECEIVE RESP: ' WS-RESP-CD
-           DISPLAY 'RECEIVE RESP2: ' WS-REAS-CD.
 
       *----------------------------------------------------------------*
       *                      POPULATE-HEADER-INFO
       *----------------------------------------------------------------*
        POPULATE-HEADER-INFO.
 
-           DISPLAY 'POPULATE-HEADER-INFO: START'
 
            MOVE FUNCTION CURRENT-DATE  TO WS-CURDATE-DATA
 
@@ -288,15 +252,12 @@
 
            MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COUSR1AO.
 
-           DISPLAY 'HEADER INFO POPULATED'.
 
       *----------------------------------------------------------------*
       *                      INSERT-USER-DB2-TABLE
       *----------------------------------------------------------------*
        INSERT-USER-DB2-TABLE.
 
-           DISPLAY 'INSERT-USER-DB2-TABLE: START'
-           DISPLAY 'INSERTING USER: ' SEC-USR-ID
 
            EXEC SQL
                INSERT INTO USERSEC
@@ -306,16 +267,13 @@
                 :SEC-USR-PWD, :SEC-USR-TYPE)
            END-EXEC.
 
-           DISPLAY 'INSERT SQLCODE: ' SQLCODE
 
            EVALUATE SQLCODE
                WHEN 0
-                   DISPLAY 'INSERT SUCCESSFUL'
                    PERFORM INITIALIZE-ALL-FIELDS
                    MOVE SPACES             TO WS-MESSAGE
                    MOVE DFHGREEN           TO ERRMSGC  OF COUSR1AO
                    EXEC SQL COMMIT END-EXEC
-                   DISPLAY 'TRANSACTION COMMITTED'
                    STRING 'User '     DELIMITED BY SIZE
                           SEC-USR-ID  DELIMITED BY SPACE
                           ' has been added ...' DELIMITED BY SIZE
@@ -323,22 +281,18 @@
                    PERFORM SEND-USRADD-SCREEN
                WHEN -803
                WHEN -1
-                   DISPLAY 'DUPLICATE USER ID ERROR'
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'User ID already exist...' TO
                                    WS-MESSAGE
                    MOVE -1       TO USERIDL OF COUSR1AI
                    EXEC SQL ROLLBACK END-EXEC
-                   DISPLAY 'TRANSACTION ROLLED BACK'
                    PERFORM SEND-USRADD-SCREEN
                WHEN OTHER
-                   DISPLAY 'SQL ERROR - SQLCODE: ' SQLCODE
                    MOVE 'Y'     TO WS-ERR-FLG
                    MOVE 'Unable to Add User...' TO
                                    WS-MESSAGE
                    MOVE -1       TO FNAMEL OF COUSR1AI
                    EXEC SQL ROLLBACK END-EXEC
-                   DISPLAY 'TRANSACTION ROLLED BACK'
                    PERFORM SEND-USRADD-SCREEN
            END-EVALUATE.
 
@@ -347,19 +301,16 @@
       *----------------------------------------------------------------*
        CLEAR-CURRENT-SCREEN.
 
-           DISPLAY 'CLEAR-CURRENT-SCREEN: START'
 
            PERFORM INITIALIZE-ALL-FIELDS.
            PERFORM SEND-USRADD-SCREEN.
 
-           DISPLAY 'SCREEN CLEARED'.
 
       *----------------------------------------------------------------*
       *                      INITIALIZE-ALL-FIELDS
       *----------------------------------------------------------------*
        INITIALIZE-ALL-FIELDS.
 
-           DISPLAY 'INITIALIZE-ALL-FIELDS: START'
 
            MOVE -1              TO FNAMEL OF COUSR1AI
            MOVE SPACES          TO USERIDI  OF COUSR1AI
@@ -370,7 +321,6 @@
                                    WS-MESSAGE
                                    SEC-USER-DATA.
 
-           DISPLAY 'ALL FIELDS INITIALIZED'.
 
       *
       * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT

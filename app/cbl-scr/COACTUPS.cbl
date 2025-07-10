@@ -708,6 +708,7 @@
                      FUNCTION NUMVAL-C(ACRDLIMI OF CACTUPAI)
                ELSE
                   SET INPUT-ERROR TO TRUE
+                  MOVE -1 TO ACRDLIML OF CACTUPAI
                   IF WS-RETURN-MSG-OFF
                      MOVE 'Credit Limit must be a valid amount' TO
                      WS-RETURN-MSG
@@ -726,6 +727,7 @@
                      FUNCTION NUMVAL-C(ACSHLIMI OF CACTUPAI)
                ELSE
                   SET INPUT-ERROR TO TRUE
+                  MOVE -1 TO ACSHLIML OF CACTUPAI
                   IF WS-RETURN-MSG-OFF
                      MOVE 'Cash Limit must be a valid amount' TO
                      WS-RETURN-MSG
@@ -745,6 +747,7 @@
                      FUNCTION NUMVAL-C(ACURBALI OF CACTUPAI)
                ELSE
                   SET INPUT-ERROR TO TRUE
+                  MOVE -1 TO ACURBALL OF CACTUPAI
                   IF WS-RETURN-MSG-OFF
                      MOVE 'Current Balance must be a valid amount'
                      TO WS-RETURN-MSG
@@ -764,6 +767,7 @@
                      FUNCTION NUMVAL-C(ACRCYCRI OF CACTUPAI)
                ELSE
                   SET INPUT-ERROR TO TRUE
+                  MOVE -1 TO ACRCYCRL OF CACTUPAI
                   IF WS-RETURN-MSG-OFF
                      MOVE 'Current Cycle Credit must be a valid amount'
                      TO WS-RETURN-MSG
@@ -782,6 +786,7 @@
                      FUNCTION NUMVAL-C(ACRCYDBI OF CACTUPAI)
                ELSE
                   SET INPUT-ERROR TO TRUE
+                  MOVE -1 TO ACRCYDBL OF CACTUPAI
                   IF WS-RETURN-MSG-OFF
                      MOVE 'Current Cycle Debit must be a valid amount'
                       TO WS-RETURN-MSG
@@ -1084,7 +1089,9 @@
 
        2000-DECIDE-ACTION.
 
-
+              IF INPUT-ERROR
+             GO TO 2000-DECIDE-ACTION-EXIT
+              END-IF.
            EVALUATE TRUE
       ******************************************************************
       *       NO DETAILS SHOWN.

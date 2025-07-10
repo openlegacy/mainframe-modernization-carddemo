@@ -146,8 +146,6 @@
            END-IF
 
            IF NOT ERR-FLG-ON
-                       CDEMO-MENU-OPT-PGMNAME(WS-OPTION)
-                       CDEMO-MENU-OPT-USRTYPE(WS-OPTION)
                IF CDEMO-MENU-OPT-PGMNAME(WS-OPTION)(1:5) NOT = 'DUMMY'
                    MOVE WS-TRANID    TO CDEMO-FROM-TRANID
                    MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
@@ -157,7 +155,6 @@
                        XCTL PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))
                        COMMAREA(CARDDEMO-COMMAREA)
                    END-EXEC
-               ELSE
                END-IF
                MOVE SPACES             TO WS-MESSAGE
                MOVE DFHGREEN           TO ERRMSGC  OF COMEN1AO

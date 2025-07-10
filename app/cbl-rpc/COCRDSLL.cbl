@@ -1,0 +1,253 @@
+******************************************************************
+      * Program     : COCRDSLL.CBL
+      * Application : CardDemo
+      * Type        : COBOL RPC Program
+      * Function    : Card lookup/read operations for API integration
+      * Description : Receives card search criteria and returns card data
+      *               Handles both card number and account ID lookups
+      ******************************************************************
+      * Copyright Amazon.com, Inc. or its affiliates.
+      * All Rights Reserved.
+      *
+      * Licensed under the Apache License, Version 2.0 (the "License").
+      * You may not use this file except in compliance with the License.
+      * You may obtain a copy of the License at
+      *
+      *    http://www.apache.org/licenses/LICENSE-2.0
+      *
+      * Unless required by applicable law or agreed to in writing,
+      * software distributed under the License is distributed on an
+      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+      * either express or implied. See the License for the specific
+      * language governing permissions and limitations under the License
+      ******************************************************************
+       IDENTIFICATION DIVISION.
+       PROGRAM-ID.     COCRDSLL.
+       AUTHOR.     AWS.
+
+       ENVIRONMENT DIVISION.
+       CONFIGURATION SECTION.
+
+       DATA DIVISION.
+      *----------------------------------------------------------------*
+      *                     WORKING STORAGE SECTION
+      *----------------------------------------------------------------*
+       WORKING-STORAGE SECTION.
+
+       01 WS-VARIABLES.
+         05 WS-PGMNAME                 PIC X(08) VALUE 'COCRDSLL'.
+         05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
+           88 ERR-FLG-ON                         VALUE 'Y'.
+           88 ERR-FLG-OFF                        VALUE 'N'.
+         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.
+         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.
+         05 WS-OPERATION               PIC X(01) VALUE SPACES.
+           88 OPERATION-LOOKUP-CARD             VALUE 'L'.
+           88 OPERATION-LOOKUP-ACCT             VALUE 'A'.
+
+      * File access variables
+       01 WS-FILE-VARS.
+         05 WS-CARDFILENAME             PIC X(08) VALUE 'CARDDAT '.
+         05 WS-CARDFILENAME-ACCT-PATH   PIC X(08) VALUE 'CARDAIX '.
+         05 WS-CARD-RID.
+           10 WS-CARD-RID-CARDNUM       PIC X(16).
+           10 WS-CARD-RID-ACCT-ID       PIC 9(11).
+           10 WS-CARD-RID-ACCT-ID-X REDEFINES
+              WS-CARD-RID-ACCT-ID       PIC X(11).
+         05 WS-FILE-ERROR-MESSAGE.
+           10 FILLER                    PIC X(12)
+                                        VALUE 'File Error: '.
+           10 ERROR-OPNAME              PIC X(8)
+                                        VALUE SPACES.
+           10 FILLER                    PIC X(4)
+                                        VALUE ' on '.
+           10 ERROR-FILE                PIC X(9)
+                                        VALUE SPACES.
+           10 FILLER                    PIC X(15)
+                                        VALUE
+                                        ' returned RESP '.
+           10 ERROR-RESP                PIC X(10)
+                                        VALUE SPACES.
+           10 FILLER                    PIC X(7)
+                                        VALUE ',RESP2 '.
+           10 ERROR-RESP2               PIC X(10)
+                                        VALUE SPACES.
+           10 FILLER                    PIC X(5)
+                                        VALUE SPACES.
+
+      *----------------------------------------------------------------*
+      *                        LINKAGE SECTION
+      *----------------------------------------------------------------*
+       LINKAGE SECTION.
+       01  DFHCOMMAREA.
+           05  LK-OPERATION               PIC X(01).
+               88  LK-OP-LOOKUP-CARD      VALUE 'L'.
+               88  LK-OP-LOOKUP-ACCT      VALUE 'A'.
+           05  LK-INPUT-CRITERIA.
+               10  LK-IN-ACCT-ID             PIC 9(11).
+               10  LK-IN-CARD-NUM            PIC 9(16).
+           05  LK-OUTPUT-STATUS.
+               10  LK-OUT-RETURN-CODE        PIC 9(02).
+                   88  RC-SUCCESS             VALUE 00.
+                   88  RC-NOT-FOUND           VALUE 01.
+                   88  RC-VALIDATION-ERROR    VALUE 10.
+                   88  RC-DATABASE-ERROR      VALUE 99.
+               10  LK-OUT-MESSAGE            PIC X(80).
+           05  LK-OUTPUT-CARD-DATA.
+               10  LK-OUT-CARD-NUM           PIC X(16).
+               10  LK-OUT-CARD-ACCT-ID       PIC 9(11).
+               10  LK-OUT-CARD-CVV-CD        PIC 9(03).
+               10  LK-OUT-CARD-EMBOSSED-NAME PIC X(50).
+               10  LK-OUT-CARD-EXPIRY-DATE   PIC X(10).
+               10  LK-OUT-CARD-STATUS        PIC X(01).
+
+      *Dataset layouts
+      *CARD RECORD LAYOUT
+       COPY CVACT02Y.
+
+      *----------------------------------------------------------------*
+      *                       PROCEDURE DIVISION
+      *----------------------------------------------------------------*
+       PROCEDURE DIVISION.
+
+       MAIN-PARA.
+           INITIALIZE LK-OUTPUT-STATUS
+                      LK-OUTPUT-CARD-DATA
+
+           SET ERR-FLG-OFF TO TRUE
+           SET RC-SUCCESS TO TRUE
+
+           MOVE SPACES TO LK-OUT-MESSAGE
+
+      * Process based on operation flag from calling program
+           EVALUATE TRUE
+               WHEN LK-OP-LOOKUP-CARD
+                   PERFORM PROCESS-CARD-LOOKUP
+               WHEN LK-OP-LOOKUP-ACCT
+                   PERFORM PROCESS-ACCT-LOOKUP
+               WHEN OTHER
+                   SET RC-VALIDATION-ERROR TO TRUE
+                   MOVE 'Invalid operation code' TO LK-OUT-MESSAGE
+           END-EVALUATE
+
+           GOBACK.
+
+      *----------------------------------------------------------------*
+      *                      PROCESS-CARD-LOOKUP
+      *----------------------------------------------------------------*
+       PROCESS-CARD-LOOKUP.
+
+           IF LK-IN-CARD-NUM = ZEROS
+               SET RC-VALIDATION-ERROR TO TRUE
+               MOVE 'Card number cannot be zero for lookup'
+                    TO LK-OUT-MESSAGE
+           ELSE
+               MOVE LK-IN-CARD-NUM TO WS-CARD-RID-CARDNUM
+               PERFORM READ-CARD-BY-CARDNUM
+
+               IF NOT ERR-FLG-ON
+                   PERFORM POPULATE-CARD-OUTPUT-DATA
+                   MOVE 'Card data retrieved successfully'
+                        TO LK-OUT-MESSAGE
+               END-IF
+           END-IF.
+
+      *----------------------------------------------------------------*
+      *                      PROCESS-ACCT-LOOKUP
+      *----------------------------------------------------------------*
+       PROCESS-ACCT-LOOKUP.
+
+           IF LK-IN-ACCT-ID = ZEROS
+               SET RC-VALIDATION-ERROR TO TRUE
+               MOVE 'Account ID cannot be zero for lookup'
+                    TO LK-OUT-MESSAGE
+           ELSE
+               MOVE LK-IN-ACCT-ID TO WS-CARD-RID-ACCT-ID
+               PERFORM READ-CARD-BY-ACCT
+
+               IF NOT ERR-FLG-ON
+                   PERFORM POPULATE-CARD-OUTPUT-DATA
+                   MOVE 'Card data retrieved successfully'
+                        TO LK-OUT-MESSAGE
+               END-IF
+           END-IF.
+
+      *----------------------------------------------------------------*
+      *                      READ-CARD-BY-CARDNUM
+      *----------------------------------------------------------------*
+       READ-CARD-BY-CARDNUM.
+
+           EXEC CICS READ
+                FILE      (WS-CARDFILENAME)
+                RIDFLD    (WS-CARD-RID-CARDNUM)
+                KEYLENGTH (LENGTH OF WS-CARD-RID-CARDNUM)
+                INTO      (CARD-RECORD)
+                LENGTH    (LENGTH OF CARD-RECORD)
+                RESP      (WS-RESP-CD)
+                RESP2     (WS-REAS-CD)
+           END-EXEC
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   CONTINUE
+               WHEN DFHRESP(NOTFND)
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-NOT-FOUND TO TRUE
+                   MOVE 'Card not found' TO LK-OUT-MESSAGE
+               WHEN OTHER
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-DATABASE-ERROR TO TRUE
+                   MOVE 'read'                     TO ERROR-OPNAME
+                   MOVE WS-CARDFILENAME            TO ERROR-FILE
+                   MOVE WS-RESP-CD                 TO ERROR-RESP
+                   MOVE WS-REAS-CD                 TO ERROR-RESP2
+                   MOVE WS-FILE-ERROR-MESSAGE      TO LK-OUT-MESSAGE
+           END-EVALUATE.
+
+      *----------------------------------------------------------------*
+      *                      READ-CARD-BY-ACCT
+      *----------------------------------------------------------------*
+       READ-CARD-BY-ACCT.
+
+           EXEC CICS READ
+                FILE      (WS-CARDFILENAME-ACCT-PATH)
+                RIDFLD    (WS-CARD-RID-ACCT-ID)
+                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID)
+                INTO      (CARD-RECORD)
+                LENGTH    (LENGTH OF CARD-RECORD)
+                RESP      (WS-RESP-CD)
+                RESP2     (WS-REAS-CD)
+           END-EXEC
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   CONTINUE
+               WHEN DFHRESP(NOTFND)
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-NOT-FOUND TO TRUE
+                   MOVE 'Card not found for account' TO LK-OUT-MESSAGE
+               WHEN OTHER
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-DATABASE-ERROR TO TRUE
+                   MOVE 'read'                     TO ERROR-OPNAME
+                   MOVE WS-CARDFILENAME-ACCT-PATH  TO ERROR-FILE
+                   MOVE WS-RESP-CD                 TO ERROR-RESP
+                   MOVE WS-REAS-CD                 TO ERROR-RESP2
+                   MOVE WS-FILE-ERROR-MESSAGE      TO LK-OUT-MESSAGE
+           END-EVALUATE.
+
+      *----------------------------------------------------------------*
+      *                      POPULATE-CARD-OUTPUT-DATA
+      *----------------------------------------------------------------*
+       POPULATE-CARD-OUTPUT-DATA.
+
+           MOVE CARD-NUM              TO LK-OUT-CARD-NUM
+           MOVE CARD-ACCT-ID          TO LK-OUT-CARD-ACCT-ID
+           MOVE CARD-CVV-CD           TO LK-OUT-CARD-CVV-CD
+           MOVE CARD-EMBOSSED-NAME    TO LK-OUT-CARD-EMBOSSED-NAME
+           MOVE CARD-EXPIRAION-DATE   TO LK-OUT-CARD-EXPIRY-DATE
+           MOVE CARD-ACTIVE-STATUS    TO LK-OUT-CARD-STATUS.
+
+      *
+      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT
+      *

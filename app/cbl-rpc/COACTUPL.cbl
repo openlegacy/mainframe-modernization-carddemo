@@ -1,8 +1,9 @@
-**************************************** *************************
-      * Program:     COACTUPL                                         *
+******************************************************************
+      * Program:     COACTUPL.CBL                                     *
       * Layer:       Business logic                                   *
       * Function:    RPC Service for Account Management               *
       * Description: API for read/update account and customer data    *
+      *              Modified to use COACTVWL for read operations     *
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -42,6 +43,8 @@
                                                    VALUE ZEROS.
             07 WS-REAS-CD                          PIC S9(09) COMP
                                                    VALUE ZEROS.
+            07 WS-RESP-CD-DISP                   PIC 9(09) VALUE ZEROS.
+            07 WS-REAS-CD-DISP                   PIC 9(09) VALUE ZEROS.
             07 WS-TRANID                           PIC X(4)
                                                    VALUE SPACES.
             07 WS-UCTRANS                          PIC X(4)
@@ -52,7 +55,6 @@
       *  Generic Input Edits
          05  WS-GENERIC-EDITS.
            10 WS-EDIT-VARIABLE-NAME                PIC X(25).
-
 
            10 WS-FLG-SIGNED-NUMBER-EDIT            PIC X(1).
               88  FLG-SIGNED-NUMBER-ISVALID        VALUE LOW-VALUES.
@@ -154,15 +156,13 @@
                                                    VALUE 4.
           10 WS-DIVIDEND                           PIC S9(4) COMP-3
                                                    VALUE 0.
-
           10 WS-REMAINDER                          PIC S9(4) COMP-3
                                                    VALUE 0.
           10 WS-CURR-DATE                          PIC X(21)
                                                    VALUE SPACES.
+          10 WS-TEMP-CREDIT-LIMIT                  PIC S9(10)V99
+                                                   VALUE ZEROS.
 
-
-
-      ******************************************************************
          05  WS-DATACHANGED-FLAG                   PIC X(1).
            88  NO-CHANGES-FOUND                    VALUE '0'.
            88  CHANGE-HAS-OCCURRED                 VALUE '1'.
@@ -469,6 +469,8 @@
                                                    VALUE 'CARDAIX '.
           05 LIT-CARDXREFNAME-ACCT-PATH            PIC X(8)
                                                    VALUE 'CXACAIX '.
+          05 LIT-VWL-PROGRAM                       PIC X(8)
+                                                   VALUE 'COACTVWL'.
       ******************************************************************
       * Literals for use in INSPECT statements
       ******************************************************************
@@ -506,6 +508,8 @@
       *CUSTOMER LAYOUT
        COPY CVCUS01Y.
 
+      * Commarea structures for VWL calls
+       COPY COACTOLD.
 
       * Account Update Records
        01 ACCT-UPDATE-RECORD.
@@ -549,104 +553,12 @@
                15  CUST-UPDATE-FICO-CREDIT-SCORE       PIC 9(03).
                15  FILLER                              PIC X(168).
 
-      * Work areas for change comparison
-       01 WS-OLD-DETAILS.
-          05 WS-OLD-ACCT-DATA.
-             15  WS-OLD-ACCT-ID-X                    PIC X(11).
-             15  WS-OLD-ACCT-ID                      REDEFINES
-                 WS-OLD-ACCT-ID-X                    PIC 9(11).
-             15  WS-OLD-ACTIVE-STATUS                PIC X(01).
-             15  WS-OLD-CURR-BAL                     PIC X(12).
-             15  WS-OLD-CURR-BAL-N REDEFINES
-                 WS-OLD-CURR-BAL                     PIC S9(10)V99.
-             15  WS-OLD-CREDIT-LIMIT                 PIC X(12).
-             15  WS-OLD-CREDIT-LIMIT-N               REDEFINES
-                 WS-OLD-CREDIT-LIMIT                 PIC S9(10)V99.
-             15  WS-OLD-CASH-CREDIT-LIMIT            PIC X(12).
-             15  WS-OLD-CASH-CREDIT-LIMIT-N          REDEFINES
-                 WS-OLD-CASH-CREDIT-LIMIT            PIC S9(10)V99.
-             15  WS-OLD-OPEN-DATE                    PIC X(08).
-             15  WS-OLD-OPEN-DATE-PARTS              REDEFINES
-                 WS-OLD-OPEN-DATE.
-                 20 WS-OLD-OPEN-YEAR                 PIC X(4).
-                 20 WS-OLD-OPEN-MON                  PIC X(2).
-                 20 WS-OLD-OPEN-DAY                  PIC X(2).
-             15  WS-OLD-EXPIRAION-DATE               PIC X(08).
-             15  WS-OLD-EXPIRAION-DATE-PARTS         REDEFINES
-                 WS-OLD-EXPIRAION-DATE.
-                 20 WS-OLD-EXP-YEAR                  PIC X(4).
-                 20 WS-OLD-EXP-MON                   PIC X(2).
-                 20 WS-OLD-EXP-DAY                   PIC X(2).
-             15  WS-OLD-REISSUE-DATE                 PIC X(08).
-             15  WS-OLD-REISSUE-DATE-PARTS           REDEFINES
-                 WS-OLD-REISSUE-DATE.
-                 20 WS-OLD-REISSUE-YEAR              PIC X(4).
-                 20 WS-OLD-REISSUE-MON               PIC X(2).
-                 20 WS-OLD-REISSUE-DAY               PIC X(2).
-             15  WS-OLD-CURR-CYC-CREDIT              PIC X(12).
-             15  WS-OLD-CURR-CYC-CREDIT-N            REDEFINES
-                 WS-OLD-CURR-CYC-CREDIT              PIC S9(10)V99.
-             15  WS-OLD-CURR-CYC-DEBIT               PIC X(12).
-             15  WS-OLD-CURR-CYC-DEBIT-N             REDEFINES
-                 WS-OLD-CURR-CYC-DEBIT               PIC S9(10)V99.
-             15  WS-OLD-GROUP-ID                     PIC X(10).
-          05 WS-OLD-CUST-DATA.
-             15  WS-OLD-CUST-ID-X                    PIC X(09).
-             15  WS-OLD-CUST-ID                      REDEFINES
-                 WS-OLD-CUST-ID-X                    PIC 9(09).
-             15  WS-OLD-CUST-FIRST-NAME              PIC X(25).
-             15  WS-OLD-CUST-MIDDLE-NAME             PIC X(25).
-             15  WS-OLD-CUST-LAST-NAME               PIC X(25).
-             15  WS-OLD-CUST-ADDR-LINE-1             PIC X(50).
-             15  WS-OLD-CUST-ADDR-LINE-2             PIC X(50).
-             15  WS-OLD-CUST-ADDR-LINE-3             PIC X(50).
-             15  WS-OLD-CUST-ADDR-STATE-CD           PIC X(02).
-             15  WS-OLD-CUST-ADDR-COUNTRY-CD         PIC X(03).
-             15  WS-OLD-CUST-ADDR-ZIP                PIC X(10).
-             15  WS-OLD-CUST-PHONE-NUM-1             PIC X(15).
-             15  WS-OLD-CUST-PHONE-NUM-1-X REDEFINES
-                 WS-OLD-CUST-PHONE-NUM-1.
-                 20 FILLER                           PIC X(1).
-                 20 WS-OLD-CUST-PHONE-NUM-1A         PIC X(3).
-                 20 FILLER                           PIC X(1).
-                 20 WS-OLD-CUST-PHONE-NUM-1B         PIC X(3).
-                 20 FILLER                           PIC X(1).
-                 20 WS-OLD-CUST-PHONE-NUM-1C         PIC X(4).
-                 20 FILLER                           PIC X(2).
-             15  WS-OLD-CUST-PHONE-NUM-2             PIC X(15).
-             15  WS-OLD-CUST-PHONE-NUM-2-X REDEFINES
-                 WS-OLD-CUST-PHONE-NUM-2.
-                 20 FILLER                           PIC X(1).
-                 20 WS-OLD-CUST-PHONE-NUM-2A         PIC X(3).
-                 20 FILLER                           PIC X(1).
-                 20 WS-OLD-CUST-PHONE-NUM-2B         PIC X(3).
-                 20 FILLER                           PIC X(1).
-                 20 WS-OLD-CUST-PHONE-NUM-2C         PIC X(4).
-                 20 FILLER                           PIC X(2).
-             15  WS-OLD-CUST-SSN-X                   PIC X(09).
-             15  WS-OLD-CUST-SSN                     REDEFINES
-                 WS-OLD-CUST-SSN-X                   PIC 9(09).
-             15  WS-OLD-CUST-GOVT-ISSUED-ID          PIC X(20).
-             15  WS-OLD-CUST-DOB-YYYY-MM-DD          PIC X(08).
-             15  WS-OLD-CUST-DOB-PARTS               REDEFINES
-                 WS-OLD-CUST-DOB-YYYY-MM-DD.
-                 20 WS-OLD-CUST-DOB-YEAR             PIC X(4).
-                 20 WS-OLD-CUST-DOB-MON              PIC X(2).
-                 20 WS-OLD-CUST-DOB-DAY              PIC X(2).
-             15  WS-OLD-CUST-EFT-ACCOUNT-ID          PIC X(10).
-             15  WS-OLD-CUST-PRI-HOLDER-IND          PIC X(01).
-             15  WS-OLD-CUST-FICO-SCORE-X            PIC X(03).
-             15  WS-OLD-CUST-FICO-SCORE              REDEFINES
-                 WS-OLD-CUST-FICO-SCORE-X            PIC 9(03).
-
       *****************************************************************
       *    Generic date edit variables CCYYMMDD
       ******************************************************************
        01 DATE-VALID.
          05 DATE-VALID-LABEL.
            COPY CSUTLDWY.
-
-
 
        LINKAGE SECTION.
       ******************************************************************
@@ -784,7 +696,8 @@
                       THRU 1000-PROCESS-READ-EXIT
 
                WHEN OP-UPDATE OR OP-VALIDATE
-      *         Both operations use the same logic with different endings
+      *         Both operations use the same logic with different
+      *         endings
                    PERFORM 2000-PROCESS-UPDATE
                       THRU 2000-PROCESS-UPDATE-EXIT
                    PERFORM 1290-SET-ERROR-FIELD
@@ -797,7 +710,7 @@
            GOBACK.
 
       ******************************************************************
-      * Process Read operation - mirror COACTUPC 1000-PROCESS-INPUTS
+      * Process Read operation - Use VWL for reading
       ******************************************************************
        1000-PROCESS-READ.
            PERFORM 1100-VALIDATE-READ-INPUT
@@ -809,22 +722,24 @@
               GO TO 1000-PROCESS-READ-EXIT
            END-IF
 
-           PERFORM 9000-READ-ACCT
-              THRU 9000-READ-ACCT-EXIT
+           PERFORM 9000-READ-VIA-VWL
+              THRU 9000-READ-VIA-VWL-EXIT
 
            IF NOT RC-SUCCESS
               GO TO 1000-PROCESS-READ-EXIT
            END-IF
 
-           PERFORM 1300-MAP-OUTPUT-DATA
-              THRU 1300-MAP-OUTPUT-DATA-EXIT
-              .
+           MOVE 'Account and customer data retrieved successfully.'
+                TO LK-OUT-MESSAGE
+
+           .
 
        1000-PROCESS-READ-EXIT.
            EXIT.
 
       ******************************************************************
-      * Validate Read Input Parameters - mirror COACTUPC 1210-EDIT-ACCOUNT
+      * Validate Read Input Parameters - mirror COACTUPC 1210-EDIT-
+      * ACCOUNT
       ******************************************************************
        1100-VALIDATE-READ-INPUT.
            PERFORM 1210-EDIT-ACCOUNT
@@ -876,50 +791,6 @@
            .
 
       ******************************************************************
-      * Map Output Data from Database Records to Output Fields
-      ******************************************************************
-       1300-MAP-OUTPUT-DATA.
-      * Account data
-           MOVE ACCT-ID                   TO LK-OUT-ACCT-ID
-           MOVE ACCT-ACTIVE-STATUS        TO LK-OUT-ACCT-ACTIVE-STATUS
-           MOVE ACCT-CREDIT-LIMIT         TO LK-OUT-ACCT-CREDIT-LIMIT
-           MOVE ACCT-CASH-CREDIT-LIMIT    TO LK-OUT-ACCT-CASH-LIMIT
-           MOVE ACCT-CURR-BAL             TO LK-OUT-ACCT-CURR-BAL
-           MOVE ACCT-CURR-CYC-CREDIT      TO LK-OUT-ACCT-CURR-CYC-CREDIT
-           MOVE ACCT-CURR-CYC-DEBIT       TO LK-OUT-ACCT-CURR-CYC-DEBIT
-           MOVE ACCT-OPEN-DATE            TO LK-OUT-ACCT-OPEN-DATE
-           MOVE ACCT-EXPIRAION-DATE       TO LK-OUT-ACCT-EXPIRATION-DATE
-           MOVE ACCT-REISSUE-DATE         TO LK-OUT-ACCT-REISSUE-DATE
-           MOVE ACCT-GROUP-ID             TO LK-OUT-ACCT-GROUP-ID
-           MOVE XREF-CARD-NUM             TO LK-OUT-ACCT-CARD-NUM
-
-      * Customer data
-           MOVE CUST-ID                   TO LK-OUT-CUST-ID
-           MOVE CUST-FIRST-NAME           TO LK-OUT-CUST-FIRST-NAME
-           MOVE CUST-MIDDLE-NAME          TO LK-OUT-CUST-MIDDLE-NAME
-           MOVE CUST-LAST-NAME            TO LK-OUT-CUST-LAST-NAME
-           MOVE CUST-SSN                  TO LK-OUT-CUST-SSN
-           MOVE CUST-DOB-YYYY-MM-DD       TO LK-OUT-CUST-DOB
-           MOVE CUST-ADDR-LINE-1          TO LK-OUT-CUST-ADDR-LINE-1
-           MOVE CUST-ADDR-LINE-2          TO LK-OUT-CUST-ADDR-LINE-2
-           MOVE CUST-ADDR-LINE-3          TO LK-OUT-CUST-ADDR-LINE-3
-           MOVE CUST-ADDR-STATE-CD        TO LK-OUT-CUST-ADDR-STATE-CD
-           MOVE CUST-ADDR-COUNTRY-CD      TO LK-OUT-CUST-ADDR-COUNTRY-CD
-           MOVE CUST-ADDR-ZIP             TO LK-OUT-CUST-ADDR-ZIP
-           MOVE CUST-PHONE-NUM-1          TO LK-OUT-CUST-PHONE-NUM-1
-           MOVE CUST-PHONE-NUM-2          TO LK-OUT-CUST-PHONE-NUM-2
-           MOVE CUST-GOVT-ISSUED-ID       TO LK-OUT-CUST-GOVT-ISSUED-ID
-           MOVE CUST-EFT-ACCOUNT-ID       TO LK-OUT-CUST-EFT-ACCOUNT-ID
-           MOVE CUST-PRI-CARD-HOLDER-IND  TO LK-OUT-CUST-PRI-HOLDER-IND
-           MOVE CUST-FICO-CREDIT-SCORE    TO LK-OUT-CUST-FICO-SCORE
-
-           MOVE 'Account and customer data retrieved successfully.'
-                TO LK-OUT-MESSAGE.
-
-       1300-MAP-OUTPUT-DATA-EXIT.
-           EXIT.
-
-      ******************************************************************
       * Process Update operation - mirror COACTUPC structure
       ******************************************************************
         2000-PROCESS-UPDATE.
@@ -965,8 +836,8 @@
                   THRU 9600-WRITE-PROCESSING-EXIT
 
                IF RC-SUCCESS
-                  PERFORM 1300-MAP-OUTPUT-DATA
-                     THRU 1300-MAP-OUTPUT-DATA-EXIT
+                  PERFORM 9000-READ-VIA-VWL
+                     THRU 9000-READ-VIA-VWL-EXIT
                   MOVE 'Changes committed to database'
                     TO LK-OUT-MESSAGE
                END-IF
@@ -998,8 +869,8 @@
            .
 
       ******************************************************************
-      * FIXED: Date validation section in 1200-EDIT-MAP-INPUTS with error
-      * field detection
+      * FIXED: Date validation section in 1200-EDIT-MAP-INPUTS with
+      * error field detection
       ******************************************************************
        1200-EDIT-MAP-INPUTS.
            SET INPUT-OK                  TO TRUE
@@ -1191,7 +1062,6 @@
            IF INPUT-ERROR AND LK-OUT-ERROR-FIELD = SPACES
                MOVE 'ZIP-CODE' TO LK-OUT-ERROR-FIELD
            END-IF
-      *    Address Line 2 is optional
            MOVE 'City'                   TO WS-EDIT-VARIABLE-NAME
            MOVE LK-IN-CUST-ADDR-LINE-3 TO WS-EDIT-ALPHANUM-ONLY
            MOVE 50                       TO WS-EDIT-ALPHANUM-LENGTH
@@ -1272,94 +1142,107 @@
                    MOVE 'ZIP-CODE' TO LK-OUT-ERROR-FIELD
                END-IF
            END-IF
-           .
+                      .
        1200-EDIT-MAP-INPUTS-EXIT.
            EXIT
            .
 
       ******************************************************************
-      * Compare Old New - mirror COACTUPC 1205-COMPARE-OLD-NEW
+      * Compare Old New - Use proper input vs database comparison
       ******************************************************************
        1205-COMPARE-OLD-NEW.
            SET NO-CHANGES-FOUND           TO TRUE
 
-      * Compare Account data fields
-           IF  LK-IN-ACCT-ID NOT = WS-OLD-ACCT-ID-X
+      *    Compare input data with what was read from database (OLD)
+      *    Account data comparison
+           IF  LK-IN-ACCT-ID NOT =    OLD-OUT-ACCT-ID
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
            IF FUNCTION UPPER-CASE(LK-IN-ACCT-ACTIVE-STATUS) NOT =
-              FUNCTION UPPER-CASE(WS-OLD-ACTIVE-STATUS)
+              FUNCTION UPPER-CASE( OLD-OUT-ACCT-ACTIVE-STATUS)
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-ACCT-CURR-BAL NOT = WS-OLD-CURR-BAL-N
+           IF LK-IN-ACCT-CURR-BAL NOT = OLD-OUT-ACCT-CURR-BAL
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-ACCT-CREDIT-LIMIT NOT = WS-OLD-CREDIT-LIMIT-N
+           IF LK-IN-ACCT-CREDIT-LIMIT NOT = OLD-OUT-ACCT-CREDIT-LIMIT
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-ACCT-CASH-LIMIT NOT = WS-OLD-CASH-CREDIT-LIMIT-N
+           IF LK-IN-ACCT-CASH-LIMIT NOT = OLD-OUT-ACCT-CASH-LIMIT
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
       * Compare dates by concatenating and comparing
            STRING LK-IN-ACCT-OPEN-YEAR
+                  '-'
                   LK-IN-ACCT-OPEN-MON
+                  '-'
                   LK-IN-ACCT-OPEN-DAY
-           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:8)
+           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:10)
 
-           IF WS-EDIT-VARIABLE-NAME(1:8) NOT = WS-OLD-OPEN-DATE
+           IF WS-EDIT-VARIABLE-NAME(1:10) NOT = OLD-OUT-ACCT-OPEN-DATE
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
            STRING LK-IN-ACCT-EXP-YEAR
+                  '-'
                   LK-IN-ACCT-EXP-MON
+                  '-'
                   LK-IN-ACCT-EXP-DAY
-           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:8)
+           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:10)
 
-           IF WS-EDIT-VARIABLE-NAME(1:8) NOT = WS-OLD-EXPIRAION-DATE
+           IF WS-EDIT-VARIABLE-NAME(1:10) NOT =
+              OLD-OUT-ACCT-EXPIRATION-DATE
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
            STRING LK-IN-ACCT-REISSUE-YEAR
+                  '-'
                   LK-IN-ACCT-REISSUE-MON
+                  '-'
                   LK-IN-ACCT-REISSUE-DAY
-           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:8)
+           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:10)
 
-           IF WS-EDIT-VARIABLE-NAME(1:8) NOT = WS-OLD-REISSUE-DATE
+           IF WS-EDIT-VARIABLE-NAME(1:10) NOT =
+              OLD-OUT-ACCT-REISSUE-DATE
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-ACCT-CURR-CYC-CREDIT NOT = WS-OLD-CURR-CYC-CREDIT-N
+           IF LK-IN-ACCT-CURR-CYC-CREDIT NOT =
+              OLD-OUT-ACCT-CURR-CYC-CREDIT
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-ACCT-CURR-CYC-DEBIT NOT = WS-OLD-CURR-CYC-DEBIT-N
+           IF LK-IN-ACCT-CURR-CYC-DEBIT NOT =
+              OLD-OUT-ACCT-CURR-CYC-DEBIT
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
            IF FUNCTION UPPER-CASE(FUNCTION TRIM(LK-IN-ACCT-GROUP-ID))
-              NOT = FUNCTION UPPER-CASE(FUNCTION TRIM(WS-OLD-GROUP-ID))
+              NOT = FUNCTION UPPER-CASE(
+              FUNCTION TRIM(OLD-OUT-ACCT-GROUP-ID))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
       * Compare Customer data fields
            IF FUNCTION UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ID))
-              NOT = FUNCTION UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-ID-X))
+              NOT = FUNCTION UPPER-CASE(
+              FUNCTION TRIM(OLD-OUT-CUST-ID))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1367,7 +1250,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-FIRST-NAME))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-FIRST-NAME))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-FIRST-NAME))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1375,7 +1258,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-MIDDLE-NAME))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-MIDDLE-NAME))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-MIDDLE-NAME))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1383,7 +1266,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-LAST-NAME))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-LAST-NAME))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-LAST-NAME))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1391,7 +1274,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ADDR-LINE-1))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-ADDR-LINE-1))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-ADDR-LINE-1))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1399,7 +1282,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ADDR-LINE-2))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-ADDR-LINE-2))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-ADDR-LINE-2))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1407,7 +1290,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ADDR-LINE-3))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-ADDR-LINE-3))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-ADDR-LINE-3))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1415,7 +1298,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ADDR-STATE-CD))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-ADDR-STATE-CD))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-ADDR-STATE-CD))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1423,7 +1306,7 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ADDR-COUNTRY-CD))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-ADDR-COUNTRY-CD))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-ADDR-COUNTRY-CD))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1431,22 +1314,34 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-ADDR-ZIP))
               NOT = FUNCTION UPPER-CASE(
-               FUNCTION TRIM(WS-OLD-CUST-ADDR-ZIP))
+               FUNCTION TRIM(OLD-OUT-CUST-ADDR-ZIP))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-      * Compare phone numbers
-           IF LK-IN-CUST-PHONE-1A NOT = WS-OLD-CUST-PHONE-NUM-1A
-           OR LK-IN-CUST-PHONE-1B NOT = WS-OLD-CUST-PHONE-NUM-1B
-           OR LK-IN-CUST-PHONE-1C NOT = WS-OLD-CUST-PHONE-NUM-1C
+      * Compare phone numbers - build formatted strings for comparison
+           STRING '('
+                  LK-IN-CUST-PHONE-1A
+                  ')'
+                  LK-IN-CUST-PHONE-1B
+                  '-'
+                  LK-IN-CUST-PHONE-1C
+           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:15)
+
+           IF WS-EDIT-VARIABLE-NAME(1:15) NOT = OLD-OUT-CUST-PHONE-NUM-1
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-CUST-PHONE-2A NOT = WS-OLD-CUST-PHONE-NUM-2A
-           OR LK-IN-CUST-PHONE-2B NOT = WS-OLD-CUST-PHONE-NUM-2B
-           OR LK-IN-CUST-PHONE-2C NOT = WS-OLD-CUST-PHONE-NUM-2C
+           STRING '('
+                  LK-IN-CUST-PHONE-2A
+                  ')'
+                  LK-IN-CUST-PHONE-2B
+                  '-'
+                  LK-IN-CUST-PHONE-2C
+           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:15)
+
+           IF WS-EDIT-VARIABLE-NAME(1:15) NOT = OLD-OUT-CUST-PHONE-NUM-2
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1457,7 +1352,7 @@
                   LK-IN-CUST-SSN-3
            DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:9)
 
-           IF WS-EDIT-VARIABLE-NAME(1:9) NOT = WS-OLD-CUST-SSN-X
+           IF WS-EDIT-VARIABLE-NAME(1:9) NOT = OLD-OUT-CUST-SSN
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1465,24 +1360,26 @@
            IF FUNCTION
            UPPER-CASE(FUNCTION TRIM(LK-IN-CUST-GOVT-ISSUED-ID))
               NOT = FUNCTION
-              UPPER-CASE(FUNCTION TRIM(WS-OLD-CUST-GOVT-ISSUED-ID))
+              UPPER-CASE(FUNCTION TRIM(OLD-OUT-CUST-GOVT-ISSUED-ID))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-      * Compare DOB by concatenating
+      * Compare DOB by concatenating and formatting
            STRING LK-IN-CUST-DOB-YEAR
+                  '-'
                   LK-IN-CUST-DOB-MON
+                  '-'
                   LK-IN-CUST-DOB-DAY
-           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:8)
+           DELIMITED BY SIZE INTO WS-EDIT-VARIABLE-NAME(1:10)
 
-           IF WS-EDIT-VARIABLE-NAME(1:8)
-           NOT = WS-OLD-CUST-DOB-YYYY-MM-DD
+           IF WS-EDIT-VARIABLE-NAME(1:10) NOT = OLD-OUT-CUST-DOB
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-CUST-EFT-ACCOUNT-ID NOT = WS-OLD-CUST-EFT-ACCOUNT-ID
+           IF LK-IN-CUST-EFT-ACCOUNT-ID
+            NOT = OLD-OUT-CUST-EFT-ACCOUNT-ID
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1490,12 +1387,12 @@
            IF FUNCTION UPPER-CASE
            (FUNCTION TRIM(LK-IN-CUST-PRI-HOLDER-IND))
               NOT = FUNCTION UPPER-CASE
-              (FUNCTION TRIM(WS-OLD-CUST-PRI-HOLDER-IND))
+              (FUNCTION TRIM(OLD-OUT-CUST-PRI-HOLDER-IND))
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
 
-           IF LK-IN-CUST-FICO-SCORE NOT = WS-OLD-CUST-FICO-SCORE-X
+           IF LK-IN-CUST-FICO-SCORE NOT = OLD-OUT-CUST-FICO-SCORE
                SET CHANGE-HAS-OCCURRED   TO TRUE
                GO TO 1205-COMPARE-OLD-NEW-EXIT
            END-IF
@@ -1510,32 +1407,19 @@
            .
 
       ******************************************************************
-      * Verify Account Exists Before Update
+      * Verify Account Exists Before Update - Use VWL
       ******************************************************************
        2150-VERIFY-ACCOUNT-EXISTS.
-           PERFORM 9000-READ-ACCT
-              THRU 9000-READ-ACCT-EXIT
+           PERFORM 9000-READ-VIA-VWL
+              THRU 9000-READ-VIA-VWL-EXIT
 
-           IF DID-NOT-FIND-ACCT-IN-CARDXREF
-              SET RC-NOT-FOUND TO TRUE
-              MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
+           IF NOT RC-SUCCESS
               GO TO 2150-VERIFY-ACCT-EXISTS-EXIT
            END-IF
 
-           IF DID-NOT-FIND-ACCT-IN-ACCTDAT
-              SET RC-NOT-FOUND TO TRUE
-              MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
-              GO TO 2150-VERIFY-ACCT-EXISTS-EXIT
-           END-IF
-
-           IF DID-NOT-FIND-CUST-IN-CUSTDAT
-              SET RC-NOT-FOUND TO TRUE
-              MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
-              GO TO 2150-VERIFY-ACCT-EXISTS-EXIT
-           END-IF
-
-           PERFORM 9500-STORE-FETCHED-DATA
-              THRU 9500-STORE-FETCHED-DATA-EXIT
+      *    Store the data read from VWL as OLD data for comparison
+           PERFORM 9500-STORE-OLD-DATA
+              THRU 9500-STORE-OLD-DATA-EXIT
               .
 
        2150-VERIFY-ACCT-EXISTS-EXIT.
@@ -1596,7 +1480,6 @@
               END-IF
               GO TO  1220-EDIT-YESNO-EXIT
            END-IF
-
 
            IF FLG-YES-NO-ISVALID
               CONTINUE
@@ -1788,13 +1671,11 @@
               CONTINUE
            END-IF
 
-
            SET FLG-ALPHNANUM-ISVALID    TO TRUE
            .
        1245-EDIT-NUM-REQD-EXIT.
            EXIT
            .
-
 
        1260-EDIT-US-PHONE-NUM.
 
@@ -1991,7 +1872,6 @@
                CONTINUE
            END-IF
 
-
            SET FLG-EDIT-US-PHONEC-ISVALID    TO TRUE
            .
 
@@ -2001,6 +1881,7 @@
        1260-EDIT-US-PHONE-NUM-EXIT.
            EXIT
            .
+
 
        1265-EDIT-US-SSN.
       *Format xxx-xx-xxxx
@@ -2063,6 +1944,7 @@
        1265-EDIT-US-SSN-EXIT.
            EXIT
            .
+
 
        1270-EDIT-US-STATE-CD.
            MOVE LK-IN-CUST-ADDR-STATE-CD TO US-STATE-CODE-TO-EDIT
@@ -2137,11 +2019,6 @@
       * Add this new paragraph to COACTUPL
        1290-SET-ERROR-FIELD.
 
-      *      IF NOT RC-INPUT-ERROR
-      *         GO TO 1290-SET-ERROR-FIELD-EXIT
-      *     END-IF
-
-      *    This paragraph sets the error field name based on validation flags
            MOVE SPACES TO LK-OUT-ERROR-FIELD
            EVALUATE TRUE
 
@@ -2185,7 +2062,8 @@
 
                WHEN FLG-REISSUE-YEAR-NOT-OK OR FLG-REISSUE-YEAR-BLANK
                    MOVE 'REISSUE-YEAR' TO LK-OUT-ERROR-FIELD
-               WHEN FLG-REISSUE-MONTH-NOT-OK OR FLG-REISSUE-MONTH-BLANK
+               WHEN FLG-REISSUE-MONTH-NOT-OK OR
+               FLG-REISSUE-MONTH-BLANK
                    MOVE 'REISSUE-MONTH' TO LK-OUT-ERROR-FIELD
                WHEN FLG-REISSUE-DAY-NOT-OK OR FLG-REISSUE-DAY-BLANK
                    MOVE 'REISSUE-DAY' TO LK-OUT-ERROR-FIELD
@@ -2267,232 +2145,69 @@
        1290-SET-ERROR-FIELD-EXIT.
            EXIT
            .
+
       ******************************************************************
-      * FILE OPERATIONS SECTION - IDENTICAL TO COACTUPC
+      * MODIFIED SECTION - VWL OPERATIONS
       ******************************************************************
-       9000-READ-ACCT.
+       9000-READ-VIA-VWL.
+      *    Call COACTVWL to read account and customer data
+           INITIALIZE OLD-ACCOUNT-COMMAREA
 
-           INITIALIZE LK-OUTPUT-DATA
+           MOVE LK-IN-ACCT-ID TO OLD-IN-ACCT-ID
 
-           SET  WS-NO-INFO-MESSAGE      TO TRUE
-
-           PERFORM 9200-GETCARDXREF-BYACCT
-              THRU 9200-GETCARDXREF-BYACCT-EXIT
-
-           IF NOT RC-SUCCESS
-              GO TO 9000-READ-ACCT-EXIT
-           END-IF
-
-           PERFORM 9300-GETACCTDATA-BYACCT
-              THRU 9300-GETACCTDATA-BYACCT-EXIT
-
-           IF NOT RC-SUCCESS
-              GO TO 9000-READ-ACCT-EXIT
-           END-IF
-
-           MOVE XREF-CUST-ID TO WS-CARD-RID-CUST-ID
-
-           PERFORM 9400-GETCUSTDATA-BYCUST
-              THRU 9400-GETCUSTDATA-BYCUST-EXIT
-
-           IF NOT RC-SUCCESS
-              GO TO 9000-READ-ACCT-EXIT
-           END-IF
-
-           .
-
-       9000-READ-ACCT-EXIT.
-           EXIT
-           .
-       9200-GETCARDXREF-BYACCT.
-
-      *    Read the Card file. Access via alternate index ACCTID
-      *
-
-
-           EXEC CICS READ
-                DATASET   (LIT-CARDXREFNAME-ACCT-PATH)
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (CARD-XREF-RECORD)
-                LENGTH    (LENGTH OF CARD-XREF-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
+           EXEC CICS LINK
+                PROGRAM(LIT-VWL-PROGRAM)
+                COMMAREA(OLD-ACCOUNT-COMMAREA)
+                LENGTH(LENGTH OF OLD-ACCOUNT-COMMAREA)
+                RESP(WS-RESP-CD)
+                RESP2(WS-REAS-CD)
            END-EXEC
 
-           MOVE WS-RESP-CD TO ERROR-RESP.
-           MOVE WS-REAS-CD TO ERROR-RESP2.
+           MOVE WS-RESP-CD TO WS-RESP-CD-DISP.
+           MOVE WS-REAS-CD TO WS-REAS-CD-DISP.
 
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)
-                  CONTINUE
-               WHEN DFHRESP(NOTFND)
-                  SET RC-NOT-FOUND TO TRUE
-                  SET DID-NOT-FIND-ACCT-IN-CARDXREF TO TRUE
-                  MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
+                   IF OLD-RC-SUCCESS
+                       PERFORM 9100-MAP-FROM-VWL
+                          THRU 9100-MAP-FROM-VWL-EXIT
+                   ELSE
+                       MOVE OLD-OUT-RETURN-CODE TO LK-OUT-RETURN-CODE
+                       MOVE OLD-OUT-MESSAGE TO LK-OUT-MESSAGE
+                   END-IF
+               WHEN DFHRESP(PGMIDERR)
+                   SET RC-DATABASE-ERROR TO TRUE
+                   MOVE 'COACTVWL program not found' TO LK-OUT-MESSAGE
                WHEN OTHER
-                  SET RC-DATABASE-ERROR TO TRUE
-                  STRING
-                  'Account:'
-                   WS-CARD-RID-ACCT-ID-X
-                  ' not found in'
-                  ' Cross ref file.  Resp:'
-                  ERROR-RESP
-                  ' Reas:'
-                  ERROR-RESP2
-                  DELIMITED BY SIZE
-                  INTO LK-OUT-MESSAGE
-                  END-STRING
+                   SET RC-DATABASE-ERROR TO TRUE
+                   STRING 'Error calling COACTVWL. RESP='
+                          WS-RESP-CD-DISP
+                          ' RESP2='
+                          WS-REAS-CD-DISP
+                     DELIMITED BY SIZE
+                     INTO LK-OUT-MESSAGE
+                   END-STRING
            END-EVALUATE
            .
-       9200-GETCARDXREF-BYACCT-EXIT.
-           EXIT
-           .
-       9300-GETACCTDATA-BYACCT.
-
-           EXEC CICS READ
-                DATASET   (LIT-ACCTFILENAME)
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
-
-           MOVE WS-RESP-CD TO ERROR-RESP.
-           MOVE WS-REAS-CD TO ERROR-RESP2.
-
-
-           EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
-                  SET FOUND-ACCT-IN-MASTER        TO TRUE
-               WHEN DFHRESP(NOTFND)
-                  SET RC-NOT-FOUND TO TRUE
-                  SET DID-NOT-FIND-ACCT-IN-ACCTDAT TO TRUE
-                  MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
-               WHEN OTHER
-                  SET RC-DATABASE-ERROR TO TRUE
-                  STRING
-                  'Account:'
-                   WS-CARD-RID-ACCT-ID-X
-                  ' not found in'
-                  ' Acct Master file.Resp:'
-                  ERROR-RESP
-                  ' Reas:'
-                  ERROR-RESP2
-                  DELIMITED BY SIZE
-                  INTO LK-OUT-MESSAGE
-                  END-STRING
-      *
-           END-EVALUATE
-           .
-       9300-GETACCTDATA-BYACCT-EXIT.
+       9000-READ-VIA-VWL-EXIT.
            EXIT
            .
 
-       9400-GETCUSTDATA-BYCUST.
-           EXEC CICS READ
-                DATASET   (LIT-CUSTFILENAME)
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)
-                INTO      (CUSTOMER-RECORD)
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC
-
-           EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
-                  SET FOUND-CUST-IN-MASTER        TO TRUE
-               WHEN DFHRESP(NOTFND)
-                  SET RC-NOT-FOUND TO TRUE
-                  SET DID-NOT-FIND-CUST-IN-CUSTDAT TO TRUE
-                  MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
-               WHEN OTHER
-                  SET RC-DATABASE-ERROR TO TRUE
-                  STRING 'Error reading customer file: RESP='
-                         ERROR-RESP
-                         ' RESP2='
-                         ERROR-RESP2
-                    DELIMITED BY SIZE
-                    INTO LK-OUT-MESSAGE
-           END-EVALUATE
+       9100-MAP-FROM-VWL.
+      *    Map data from VWL output to UPL output
+           MOVE OLD-OUT-ACCT-DATA TO LK-OUT-ACCT-DATA
+           MOVE OLD-OUT-CUST-DATA TO LK-OUT-CUST-DATA
            .
-       9400-GETCUSTDATA-BYCUST-EXIT.
+       9100-MAP-FROM-VWL-EXIT.
            EXIT
            .
 
-       9500-STORE-FETCHED-DATA.
-
-      ******************************************************************
-      *    Account Master data
-      ******************************************************************
-           MOVE ACCT-ID                  TO WS-OLD-ACCT-ID
-      * Active Status
-           MOVE ACCT-ACTIVE-STATUS       TO WS-OLD-ACTIVE-STATUS
-      * Current Balance
-           MOVE ACCT-CURR-BAL            TO WS-OLD-CURR-BAL-N
-      * Credit Limit
-           MOVE ACCT-CREDIT-LIMIT        TO WS-OLD-CREDIT-LIMIT-N
-      * Cash Limit
-           MOVE ACCT-CASH-CREDIT-LIMIT   TO WS-OLD-CASH-CREDIT-LIMIT-N
-      * Current Cycle Credit
-           MOVE ACCT-CURR-CYC-CREDIT     TO WS-OLD-CURR-CYC-CREDIT-N
-      * Current Cycle Debit
-           MOVE ACCT-CURR-CYC-DEBIT      TO WS-OLD-CURR-CYC-DEBIT-N
-      * Open date
-           MOVE ACCT-OPEN-DATE(1:4)      TO WS-OLD-OPEN-YEAR
-           MOVE ACCT-OPEN-DATE(6:2)      TO WS-OLD-OPEN-MON
-           MOVE ACCT-OPEN-DATE(9:2)      TO WS-OLD-OPEN-DAY
-      * Expiry date
-           MOVE ACCT-EXPIRAION-DATE(1:4) TO WS-OLD-EXP-YEAR
-           MOVE ACCT-EXPIRAION-DATE(6:2) TO WS-OLD-EXP-MON
-           MOVE ACCT-EXPIRAION-DATE(9:2) TO WS-OLD-EXP-DAY
-
-      * Reissue date
-           MOVE ACCT-REISSUE-DATE(1:4)   TO WS-OLD-REISSUE-YEAR
-           MOVE ACCT-REISSUE-DATE(6:2)   TO WS-OLD-REISSUE-MON
-           MOVE ACCT-REISSUE-DATE(9:2)   TO WS-OLD-REISSUE-DAY
-      * Account Group
-           MOVE ACCT-GROUP-ID            TO WS-OLD-GROUP-ID
-      ******************************************************************
-      *    Customer Master data
-      ******************************************************************
-      *Customer Id (actually not editable)
-           MOVE CUST-ID                  TO WS-OLD-CUST-ID
-      *Social Security Number
-           MOVE CUST-SSN                 TO WS-OLD-CUST-SSN
-      *Date of birth
-           MOVE CUST-DOB-YYYY-MM-DD(1:4) TO WS-OLD-CUST-DOB-YEAR
-           MOVE CUST-DOB-YYYY-MM-DD(6:2) TO WS-OLD-CUST-DOB-MON
-           MOVE CUST-DOB-YYYY-MM-DD(9:2) TO WS-OLD-CUST-DOB-DAY
-      *FICO
-           MOVE CUST-FICO-CREDIT-SCORE   TO WS-OLD-CUST-FICO-SCORE
-      *First Name
-           MOVE CUST-FIRST-NAME          TO WS-OLD-CUST-FIRST-NAME
-      *Middle Name
-           MOVE CUST-MIDDLE-NAME         TO WS-OLD-CUST-MIDDLE-NAME
-      *Last Name
-           MOVE CUST-LAST-NAME           TO WS-OLD-CUST-LAST-NAME
-      *Address
-           MOVE CUST-ADDR-LINE-1         TO WS-OLD-CUST-ADDR-LINE-1
-           MOVE CUST-ADDR-LINE-2         TO WS-OLD-CUST-ADDR-LINE-2
-           MOVE CUST-ADDR-LINE-3         TO WS-OLD-CUST-ADDR-LINE-3
-           MOVE CUST-ADDR-STATE-CD       TO WS-OLD-CUST-ADDR-STATE-CD
-           MOVE CUST-ADDR-COUNTRY-CD     TO
-                                          WS-OLD-CUST-ADDR-COUNTRY-CD
-           MOVE CUST-ADDR-ZIP            TO WS-OLD-CUST-ADDR-ZIP
-           MOVE CUST-PHONE-NUM-1         TO WS-OLD-CUST-PHONE-NUM-1
-           MOVE CUST-PHONE-NUM-2         TO WS-OLD-CUST-PHONE-NUM-2
-      *Government Id
-           MOVE CUST-GOVT-ISSUED-ID      TO WS-OLD-CUST-GOVT-ISSUED-ID
-      *EFT Code
-           MOVE CUST-EFT-ACCOUNT-ID      TO WS-OLD-CUST-EFT-ACCOUNT-ID
-      *Primary Holder Indicator
-           MOVE CUST-PRI-CARD-HOLDER-IND TO WS-OLD-CUST-PRI-HOLDER-IND
+       9500-STORE-OLD-DATA.
+      *    Store the OLD commarea for later comparison
+      *    (This is already stored from the VWL call)
+           CONTINUE
            .
-       9500-STORE-FETCHED-DATA-EXIT.
+       9500-STORE-OLD-DATA-EXIT.
            EXIT
            .
 
@@ -2513,7 +2228,6 @@
            MOVE WS-RESP-CD TO ERROR-RESP.
            MOVE WS-REAS-CD TO ERROR-RESP2.
 
-
       *****************************************************************
       *    Could we lock the account record ?
       *****************************************************************
@@ -2526,7 +2240,8 @@
               GO TO 9600-WRITE-PROCESSING-EXIT
            END-IF
 
-      *    Read the customer file for update
+      *    Read the customer file for update using customer ID from OLD data
+           MOVE OLD-OUT-CUST-ID TO WS-CARD-RID-CUST-ID-X
            EXEC CICS READ
                 FILE      (LIT-CUSTFILENAME)
                 UPDATE
@@ -2551,9 +2266,10 @@
 
       *****************************************************************
       *    Did someone change the record while we were out ?
+      *    Re-read via VWL and compare with OLD data
       *****************************************************************
-           PERFORM 9700-CHECK-CHANGE-IN-REC
-              THRU 9700-CHECK-CHANGE-IN-REC-EXIT
+           PERFORM 9650-CHECK-RECORD-CHANGED
+              THRU 9650-CHECK-RECORD-CHANGED-EXIT
 
            IF DATA-WAS-CHANGED-BEFORE-UPDATE
               SET RC-UPDATE-ERROR TO TRUE
@@ -2613,7 +2329,7 @@
       ******************************************************************
            INITIALIZE CUST-UPDATE-RECORD
 
-           MOVE  CUST-ID                   TO CUST-UPDATE-ID
+           MOVE  OLD-OUT-CUST-ID         TO CUST-UPDATE-ID
            MOVE  LK-IN-CUST-FIRST-NAME     TO CUST-UPDATE-FIRST-NAME
            MOVE  LK-IN-CUST-MIDDLE-NAME    TO CUST-UPDATE-MIDDLE-NAME
            MOVE  LK-IN-CUST-LAST-NAME      TO CUST-UPDATE-LAST-NAME
@@ -2712,96 +2428,52 @@
            EXIT
            .
 
-       9700-CHECK-CHANGE-IN-REC.
+       9650-CHECK-RECORD-CHANGED.
+      *    Re-read the data via VWL to check if someone else changed it
+           INITIALIZE WS-EDIT-ALPHANUM-ONLY
 
-      ******************************************************************
-      *    Account Master data
-      ******************************************************************
-           IF  ACCT-ACTIVE-STATUS      EQUAL WS-OLD-ACTIVE-STATUS
-      * Current Balance
-           AND ACCT-CURR-BAL           EQUAL WS-OLD-CURR-BAL-N
-      * Credit Limit
-           AND ACCT-CREDIT-LIMIT       EQUAL WS-OLD-CREDIT-LIMIT-N
-      * Cash Limit
-           AND ACCT-CASH-CREDIT-LIMIT EQUAL WS-OLD-CASH-CREDIT-LIMIT-N
-      * Current Cycle Credit
-           AND ACCT-CURR-CYC-CREDIT    EQUAL WS-OLD-CURR-CYC-CREDIT-N
-      * Current Cycle Debit
-           AND ACCT-CURR-CYC-DEBIT     EQUAL WS-OLD-CURR-CYC-DEBIT-N
-      * Open date
-           AND ACCT-OPEN-DATE(1:4)     EQUAL WS-OLD-OPEN-YEAR
-           AND ACCT-OPEN-DATE(6:2)     EQUAL WS-OLD-OPEN-MON
-           AND ACCT-OPEN-DATE(9:2)     EQUAL WS-OLD-OPEN-DAY
-      * Expiry date
-           AND ACCT-EXPIRAION-DATE(1:4)EQUAL WS-OLD-EXP-YEAR
-           AND ACCT-EXPIRAION-DATE(6:2)EQUAL WS-OLD-EXP-MON
-           AND ACCT-EXPIRAION-DATE(9:2)EQUAL WS-OLD-EXP-DAY
-      * Reissue date
-           AND ACCT-REISSUE-DATE(1:4)  EQUAL WS-OLD-REISSUE-YEAR
-           AND ACCT-REISSUE-DATE(6:2)  EQUAL WS-OLD-REISSUE-MON
-           AND ACCT-REISSUE-DATE(9:2)  EQUAL WS-OLD-REISSUE-DAY
-      * Account Group
-           AND FUNCTION LOWER-CASE (ACCT-GROUP-ID)           EQUAL
-               FUNCTION LOWER-CASE (WS-OLD-GROUP-ID)
-               CONTINUE
-           ELSE
-              SET DATA-WAS-CHANGED-BEFORE-UPDATE TO TRUE
-              GO TO 9700-CHECK-CHANGE-IN-REC-EXIT
+      *    Save current OLD data for comparison
+           MOVE OLD-OUT-ACCT-ACTIVE-STATUS TO WS-EDIT-VARIABLE-NAME(1:1)
+           MOVE OLD-OUT-ACCT-CREDIT-LIMIT TO WS-TEMP-CREDIT-LIMIT
+           MOVE OLD-OUT-CUST-FIRST-NAME TO WS-EDIT-ALPHANUM-ONLY(1:25)
+
+      *    Re-read via VWL
+           MOVE LK-IN-ACCT-ID TO OLD-IN-ACCT-ID
+
+           EXEC CICS LINK
+                PROGRAM(LIT-VWL-PROGRAM)
+                COMMAREA(OLD-ACCOUNT-COMMAREA)
+                LENGTH(LENGTH OF OLD-ACCOUNT-COMMAREA)
+                RESP(WS-RESP-CD)
+                RESP2(WS-REAS-CD)
+           END-EXEC
+
+           IF WS-RESP-CD NOT = DFHRESP(NORMAL)
+           OR NOT OLD-RC-SUCCESS
+              SET RC-DATABASE-ERROR TO TRUE
+              MOVE 'Error re-reading data for concurrent update check'
+                TO LK-OUT-MESSAGE
+              GO TO 9650-CHECK-RECORD-CHANGED-EXIT
            END-IF
 
-      ******************************************************************
-      *    Customer  data - Split into 2 IFs for easier reading
-      ******************************************************************
-           IF  FUNCTION UPPER-CASE (CUST-FIRST-NAME          ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-FIRST-NAME )
-           AND FUNCTION UPPER-CASE (CUST-MIDDLE-NAME         ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-MIDDLE-NAME)
-           AND FUNCTION UPPER-CASE (CUST-LAST-NAME           ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-LAST-NAME  )
-           AND FUNCTION UPPER-CASE (CUST-ADDR-LINE-1         ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-ADDR-LINE-1)
-           AND FUNCTION UPPER-CASE (CUST-ADDR-LINE-2         ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-ADDR-LINE-2)
-           AND FUNCTION UPPER-CASE (CUST-ADDR-LINE-3         ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-ADDR-LINE-3)
-           AND FUNCTION UPPER-CASE (CUST-ADDR-STATE-CD       ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-ADDR-STATE-CD)
-           AND FUNCTION UPPER-CASE (CUST-ADDR-COUNTRY-CD     ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-ADDR-COUNTRY-CD )
-           AND CUST-ADDR-ZIP           EQUAL WS-OLD-CUST-ADDR-ZIP
-           AND CUST-PHONE-NUM-1        EQUAL WS-OLD-CUST-PHONE-NUM-1
-           AND CUST-PHONE-NUM-2        EQUAL WS-OLD-CUST-PHONE-NUM-2
-           AND CUST-SSN                EQUAL WS-OLD-CUST-SSN
-           AND FUNCTION UPPER-CASE (CUST-GOVT-ISSUED-ID      ) EQUAL
-               FUNCTION UPPER-CASE (WS-OLD-CUST-GOVT-ISSUED-ID )
-           AND CUST-DOB-YYYY-MM-DD (1:4)                       EQUAL
-               WS-OLD-CUST-DOB-YYYY-MM-DD (1:4)
-           AND CUST-DOB-YYYY-MM-DD (6:2)                       EQUAL
-               WS-OLD-CUST-DOB-YYYY-MM-DD (5:2)
-           AND CUST-DOB-YYYY-MM-DD (9:2)                       EQUAL
-               WS-OLD-CUST-DOB-YYYY-MM-DD (7:2)
-
-           AND CUST-EFT-ACCOUNT-ID     EQUAL
-                                            WS-OLD-CUST-EFT-ACCOUNT-ID
-           AND CUST-PRI-CARD-HOLDER-IND
-                                       EQUAL
-                                            WS-OLD-CUST-PRI-HOLDER-IND
-           AND CUST-FICO-CREDIT-SCORE  EQUAL WS-OLD-CUST-FICO-SCORE
-               CONTINUE
-           ELSE
+      *    Compare key fields to detect changes
+           IF OLD-OUT-ACCT-ACTIVE-STATUS NOT =
+              WS-EDIT-VARIABLE-NAME(1:1)
+           OR OLD-OUT-ACCT-CREDIT-LIMIT NOT = WS-TEMP-CREDIT-LIMIT
+           OR OLD-OUT-CUST-FIRST-NAME NOT =
+              WS-EDIT-ALPHANUM-ONLY(1:25)
               SET DATA-WAS-CHANGED-BEFORE-UPDATE TO TRUE
-              GO TO 9700-CHECK-CHANGE-IN-REC-EXIT
            END-IF
+
            .
-       9700-CHECK-CHANGE-IN-REC-EXIT.
+       9650-CHECK-RECORD-CHANGED-EXIT.
            EXIT
            .
 
       ******************************************************************
       * Common Date Routines
       ******************************************************************
-       COPY CSUTLDPL
-           .
+       COPY CSUTLDPL.
 
        ABEND-ROUTINE.
            SET RC-DATABASE-ERROR TO TRUE
