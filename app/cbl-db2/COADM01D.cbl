@@ -133,7 +133,6 @@
                PERFORM SEND-MENU-SCREEN
            END-IF
 
-
            IF NOT ERR-FLG-ON
                IF CDEMO-ADMIN-OPT-PGMNAME(WS-OPTION)(1:5) NOT = 'DUMMY'
                    MOVE WS-TRANID    TO CDEMO-FROM-TRANID

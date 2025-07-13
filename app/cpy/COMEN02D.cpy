@@ -25,7 +25,7 @@
            10 FILLER                       PIC 9(02) VALUE 1.
            10 FILLER                       PIC X(35) VALUE
                'Account View                       '.
-           10 FILLER                       PIC X(08) VALUE 'COACTVWC'.
+           10 FILLER                       PIC X(08) VALUE 'COACTVWD'.
            10 FILLER                       PIC X(01) VALUE 'U'.
 
            10 FILLER                       PIC 9(02) VALUE 2.
@@ -43,13 +43,13 @@
            10 FILLER                       PIC 9(02) VALUE 4.
            10 FILLER                       PIC X(35) VALUE
                'Credit Card View                   '.
-           10 FILLER                       PIC X(08) VALUE 'COCRDSLC'.
+           10 FILLER                       PIC X(08) VALUE 'COCRDSLD'.
            10 FILLER                       PIC X(01) VALUE 'U'.
 
            10 FILLER                       PIC 9(02) VALUE 5.
            10 FILLER                       PIC X(35) VALUE
                'Credit Card Update                 '.
-           10 FILLER                       PIC X(08) VALUE 'COCRDUPC'.
+           10 FILLER                       PIC X(08) VALUE 'COCRDUPD'.
            10 FILLER                       PIC X(01) VALUE 'U'.
 
            10 FILLER                       PIC 9(02) VALUE 6.

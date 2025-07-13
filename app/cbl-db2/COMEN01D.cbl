@@ -147,15 +147,19 @@
 
            IF NOT ERR-FLG-ON
                IF CDEMO-MENU-OPT-PGMNAME(WS-OPTION)(1:5) NOT = 'DUMMY'
+
                    MOVE WS-TRANID    TO CDEMO-FROM-TRANID
                    MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
                    MOVE ZEROS        TO CDEMO-PGM-CONTEXT
-                           CDEMO-MENU-OPT-PGMNAME(WS-OPTION)
+
                    EXEC CICS
                        XCTL PROGRAM(CDEMO-MENU-OPT-PGMNAME(WS-OPTION))
                        COMMAREA(CARDDEMO-COMMAREA)
+                       RESP(WS-RESP-CD)
+                       RESP2(WS-REAS-CD)
                    END-EXEC
                END-IF
+
                MOVE SPACES             TO WS-MESSAGE
                MOVE DFHGREEN           TO ERRMSGC  OF COMEN1AO
                STRING 'This option '       DELIMITED BY SIZE
@@ -165,6 +169,7 @@
                   INTO WS-MESSAGE
                PERFORM SEND-MENU-SCREEN
            END-IF.
+
       *----------------------------------------------------------------*
       *                      RETURN-TO-SIGNON-SCREEN
       *----------------------------------------------------------------*
