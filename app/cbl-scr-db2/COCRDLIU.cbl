@@ -1,11 +1,13 @@
-******************************************************************
-      * Program:     COCRDLID.CBL                                     *
-      * Layer:       Business logic                                   *
-      * Function:    List Credit Cards using DB2                     *
+      ******************************************************************
+      * Program:     COCRDLIU.CBL
+      * Layer:       Business logic
+      * Function:    List Credit Cards with RPC calls
       *              a) All cards if no context passed and admin user
       *              b) Only the ones associated with ACCT in COMMAREA
       *                 if user is not admin
-      ******************************************************************
+      *
+      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT
+      **********************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
       *
@@ -24,7 +26,7 @@
 
        IDENTIFICATION DIVISION.
        PROGRAM-ID.
-           COCRDLID.
+           COCRDLIU.
        DATE-WRITTEN.
            April 2022.
        DATE-COMPILED.
@@ -36,7 +38,7 @@
        DATA DIVISION.
 
        WORKING-STORAGE SECTION.
-
+       01  WS-SUB PIC 999.
        01  WS-MISC-STORAGE.
       ******************************************************************
       * General CICS related
@@ -49,22 +51,10 @@
                                                    VALUE ZEROS.
             07 WS-TRANID                           PIC X(4)
                                                    VALUE SPACES.
-      ******************************************************************
-      * DB2 related variables
-      ******************************************************************
-         05 WS-DB2-VARS.
-            07 WS-SQLCODE                          PIC S9(09) COMP
+            07 WS-RESP-DISP                          PIC S9(09)
                                                    VALUE ZEROS.
-            07 WS-DB2-CURSOR-STATE                 PIC X(1)
-                                                   VALUE SPACES.
-               88 WS-CURSOR-CLOSED                 VALUE 'C'.
-               88 WS-CURSOR-OPEN                   VALUE 'O'.
-            07 WS-DB2-ROWS-FETCHED                 PIC S9(04) COMP
+            07 WS-REAS-DISP                          PIC S9(09)
                                                    VALUE ZEROS.
-            07 WS-DB2-END-OF-CURSOR                PIC X(1)
-                                                   VALUE 'N'.
-               88 WS-END-OF-CURSOR                 VALUE 'Y'.
-               88 WS-MORE-ROWS                     VALUE 'N'.
 
       ******************************************************************
       * Input edits
@@ -143,20 +133,22 @@
          05  WS-PFK-FLAG                           PIC X(1).
            88  PFK-VALID                           VALUE '0'.
            88  PFK-INVALID                         VALUE '1'.
+
          05  WS-CONTEXT-FLAG                       PIC X(1).
            88  WS-CONTEXT-FRESH-START              VALUE '0'.
            88  WS-CONTEXT-FRESH-START-NO           VALUE '1'.
       ******************************************************************
-      * DB2 Data Handling
+      * RPC Program and Communication Area
       ******************************************************************
-         05 WS-DB2-HANDLING-VARS.
-            10  WS-CARD-RID.
-                20  WS-CARD-RID-CARDNUM            PIC X(16).
-                20  WS-CARD-RID-ACCT-ID            PIC 9(11).
-                20  WS-CARD-RID-ACCT-ID-X          REDEFINES
-                    WS-CARD-RID-ACCT-ID            PIC X(11).
+
+         05 WS-ERR-FLG                            PIC X(01) VALUE 'N'.
+           88 ERR-FLG-ON                                   VALUE 'Y'.
+           88 ERR-FLG-OFF                                  VALUE 'N'.
+
 
          05  WS-SCRN-COUNTER               PIC S9(4) COMP VALUE 0.
+
+
 
          05  WS-FILTER-RECORD-FLAG                 PIC X(1).
            88  WS-EXCLUDE-THIS-RECORD               VALUE '0'.
@@ -164,63 +156,46 @@
          05  WS-RECORDS-TO-PROCESS-FLAG            PIC X(1).
            88  read-LOOP-EXIT                      VALUE '0'.
            88  MORE-RECORDS-TO-READ                VALUE '1'.
-         05  WS-DB2-ERROR-MESSAGE.
-           10  FILLER                              PIC X(12)
-                                                   VALUE 'DB2 Error: '.
-           10  ERROR-OPNAME                        PIC X(8)
-                                                   VALUE SPACES.
-           10  FILLER                              PIC X(4)
-                                                   VALUE ' on '.
-           10  ERROR-TABLE                         PIC X(9)
-                                                   VALUE SPACES.
-           10  FILLER                              PIC X(15)
-                                                   VALUE
-                                                 ' return SQLCODE'.
-           10  ERROR-SQLCODE                       PIC X(10)
-                                                   VALUE SPACES.
-           10  FILLER                              PIC X(5).
 
       ******************************************************************
       * Literals and Constants
       ******************************************************************
        01 WS-CONSTANTS.
+         05 WS-RPC-PROGRAM                   PIC X(08) VALUE 'COCRDLIA'.
          05  WS-MAX-SCREEN-LINES                    PIC S9(4) COMP
                                                     VALUE 7.
          05  LIT-THISPGM                            PIC X(8)
-             VALUE 'COCRDLID'.
+             VALUE 'COCRDLIU'.
          05  LIT-THISTRANID                         PIC X(4)
-             VALUE 'ADS4'.
+             VALUE 'AAS4'.
          05  LIT-THISMAPSET                         PIC X(7)
              VALUE 'COCRDLI'.
          05  LIT-THISMAP                            PIC X(7)
              VALUE 'CCRDLIA'.
          05  LIT-MENUPGM                            PIC X(8)
-             VALUE 'COMEN01D'.
+             VALUE 'COMEN01U'.
          05  LIT-MENUTRANID                         PIC X(4)
-             VALUE 'ADUM'.
+             VALUE 'AAUM'.
          05  LIT-MENUMAPSET                         PIC X(7)
              VALUE 'COMEN01'.
          05  LIT-MENUMAP                            PIC X(7)
              VALUE 'COMEN1A'.
          05  LIT-CARDDTLPGM                         PIC X(8)
-             VALUE 'COCRDSLD'.
+             VALUE 'COCRDSLU'.
          05  LIT-CARDDTLTRANID                      PIC X(4)
-             VALUE 'ADS6'.
+             VALUE 'AAS6'.
          05  LIT-CARDDTLMAPSET                      PIC X(7)
              VALUE 'COCRDSL'.
          05  LIT-CARDDTLMAP                         PIC X(7)
              VALUE 'CCRDSLA'.
          05  LIT-CARDUPDPGM                         PIC X(8)
-             VALUE 'COCRDUPD'.
+             VALUE 'COCRDUPU'.
          05  LIT-CARDUPDTRANID                      PIC X(4)
-             VALUE 'ADS7'.
+             VALUE 'AAS7'.
          05  LIT-CARDUPDMAPSET                      PIC X(7)
              VALUE 'COCRDUP'.
          05  LIT-CARDUPDMAP                         PIC X(7)
              VALUE 'CCRDUPA'.
-
-         05  LIT-CARD-TABLE                         PIC X(8)
-                                                   VALUE 'CARDDAT'.
 
       ******************************************************************
       *Other common working storage Variables
@@ -268,74 +243,6 @@
 
        01  WS-COMMAREA                             PIC X(2000).
 
-      ******************************************************************
-      * DB2 SQLCA
-      ******************************************************************
-           EXEC SQL
-               INCLUDE SQLCA
-           END-EXEC.
-
-      ******************************************************************
-      * DB2 HOST VARIABLE DECLARATIONS
-      ******************************************************************
-           EXEC SQL BEGIN DECLARE SECTION END-EXEC.
-
-      * Host variables for CARDDAT table
-       01  HV-CARD-VARIABLES.
-           05  HV-CARD-NUM                    PIC X(16).
-           05  HV-CARD-ACCT-ID                PIC S9(11) COMP-3.
-           05  HV-CARD-ACTIVE-STATUS          PIC X(1).
-
-      * Host variables for search criteria
-       01  HV-SEARCH-VARIABLES.
-           05  HV-SEARCH-CARD-NUM             PIC X(16).
-           05  HV-SEARCH-ACCT-ID              PIC S9(11) COMP-3.
-           05  HV-ACCT-FILTER-FLAG            PIC X(1).
-           05  HV-CARD-FILTER-FLAG            PIC X(1).
-
-           EXEC SQL END DECLARE SECTION END-EXEC.
-
-      ******************************************************************
-      * DB2 DECLARE CURSOR - Using host variables
-      ******************************************************************
-           EXEC SQL
-               DECLARE CARD_CURSOR CURSOR FOR
-               SELECT CARD_NUM,
-                      CARD_ACCT_ID,
-                      CARD_ACTIVE_STATUS
-               FROM ALAINL.CARDDAT
-               WHERE CARD_NUM >= :HV-SEARCH-CARD-NUM
-               ORDER BY CARD_NUM
-           END-EXEC.
-
-
-            EXEC SQL
-              DECLARE CARD_CURSOR_ALL CURSOR FOR
-              SELECT CARD_NUM, CARD_ACCT_ID, CARD_ACTIVE_STATUS
-              FROM ALAINL.CARDDAT
-              WHERE CARD_NUM >= :HV-SEARCH-CARD-NUM
-              ORDER BY CARD_NUM
-              END-EXEC.
-
-           EXEC SQL
-              DECLARE CARD_CURSOR_FILTERED CURSOR FOR
-              SELECT CARD_NUM, CARD_ACCT_ID, CARD_ACTIVE_STATUS
-              FROM ALAINL.CARDDAT
-              WHERE CARD_NUM >= :HV-SEARCH-CARD-NUM
-              AND CARD_ACCT_ID = :HV-SEARCH-ACCT-ID
-              ORDER BY CARD_NUM
-           END-EXEC.
-
-           EXEC SQL
-               DECLARE CARD_CURSOR_PREV CURSOR FOR
-               SELECT CARD_NUM,
-                      CARD_ACCT_ID,
-                      CARD_ACTIVE_STATUS
-               FROM ALAINL.CARDDAT
-               WHERE CARD_NUM < :HV-SEARCH-CARD-NUM
-               ORDER BY CARD_NUM DESC
-           END-EXEC.
-
       *IBM SUPPLIED COPYBOOKS
        COPY DFHBMSCA.
        COPY DFHAID.
@@ -353,9 +260,41 @@
       *Signed on user data
        COPY CSUSR01Y.
 
-      *Dataset layouts
-      *CARD RECORD LAYOUT
-       COPY CVACT02Y.
+
+
+       01 WS-RPC-COMMAREA.
+      **
+      * Input Parameters
+      **
+           05  LK-INPUT-PARAMS.
+               10  LK-FILTER-ACCT-ID                   PIC X(11).
+               10  LK-FILTER-CARD-NUM                  PIC X(16).
+               10  LK-START-KEY                        PIC X(16).
+               10  LK-MAX-RECORDS                      PIC S9(4) COMP.
+               10  LK-PAGE-DIR                         PIC X(1).
+
+      **
+      * Output Parameters
+      **
+           05  LK-OUTPUT-PARAMS.
+               10  LK-RETURN-CODE                      PIC S9(4) COMP.
+                  88  LK-RC-OK                         VALUE 0.
+                  88  LK-RC-FILTER-ERROR               VALUE 1.
+                  88  LK-RC-DB-ERROR                   VALUE 2.
+                  88  LK-RC-NO-RECORDS                 VALUE 3.
+               10  LK-RETURN-MSG                       PIC X(80).
+               10  LK-RECORDS-COUNT                    PIC S9(4) COMP.
+               10  LK-CARDS-DATA.
+                   15  LK-CARDS-ARRAY                  OCCURS 1 TO 7
+                                                       DEPENDING ON
+                                                       LK-RECORDS-COUNT.
+                       20  LK-CARD-NUM                 PIC X(16).
+                       20  LK-CARD-ACCT-ID             PIC 9(11).
+                       20  LK-CARD-CVV-CD              PIC 9(03).
+                       20  LK-CARD-EMBOSSED-NAME       PIC X(50).
+                       20  LK-CARD-EXPIRATION-DATE     PIC X(10).
+                       20  LK-CARD-ACTIVE-STATUS       PIC X(01).
+
 
        LINKAGE SECTION.
        01  DFHCOMMAREA.
@@ -374,10 +313,9 @@
       *****************************************************************
            MOVE LIT-THISTRANID       TO WS-TRANID
       *****************************************************************
-      * Ensure error message is cleared                               *
+      * Ensure error message is cleared
       *****************************************************************
            SET WS-ERROR-MSG-OFF  TO TRUE
-           SET WS-CURSOR-CLOSED  TO TRUE
       *****************************************************************
       * Retrived passed data if  any. Initialize them if first run.
       *****************************************************************
@@ -400,7 +338,7 @@
                                 WS-THIS-PROGCOMMAREA
            END-IF
       *****************************************************************
-      * If coming in from menu. Lets forget the past and start afresh *
+      * If coming in from menu. Lets forget the past and start afresh
       *****************************************************************
            IF (CDEMO-PGM-ENTER
            AND CDEMO-FROM-PROGRAM NOT EQUAL LIT-THISPGM)
@@ -430,13 +368,14 @@
 
            END-IF
       *****************************************************************
-      * Check the mapped key  to see if its valid at this point       *
+      * Check the mapped key  to see if its valid at this point
       * F3    - Exit
       * Enter - List of cards for current start key
       * F8    - Page down
-      * F7    - Page up
+      * F7    - Page upad
       *****************************************************************
            SET PFK-INVALID TO TRUE
+
            IF CCARD-AID-ENTER OR
               CCARD-AID-PFK03 OR
               CCARD-AID-PFK07 OR
@@ -505,24 +444,22 @@
                     PERFORM 1000-SEND-MAP
                        THRU 1000-SEND-MAP
                     GO TO COMMON-RETURN
-               WHEN CCARD-AID-PFK07
-                    AND CA-FIRST-PAGE
+      *         WHEN CCARD-AID-PFK07
+      *              AND CA-FIRST-PAGE
       *****************************************************************
       *        PAGE UP - PF7 - BUT ALREADY ON FIRST PAGE
       *****************************************************************
-               WHEN CCARD-AID-PFK07
-                    AND CA-FIRST-PAGE
-                    MOVE WS-CA-FIRST-CARD-NUM
-                                  TO WS-CARD-RID-CARDNUM
-                    PERFORM 9000-READ-FORWARD
-                       THRU 9000-READ-FORWARD-EXIT
-                    PERFORM 1000-SEND-MAP
-                       THRU 1000-SEND-MAP
-                    GO TO COMMON-RETURN
+      *              MOVE WS-CA-FIRST-CARD-NUM
+      *                            TO LK-START-KEY
+      *              PERFORM 9000-READ-FORWARD
+      *                 THRU 9000-READ-FORWARD-EXIT
+      *              PERFORM 1000-SEND-MAP
+      *                 THRU 1000-SEND-MAP
+      *              GO TO COMMON-RETURN
       *****************************************************************
       *        BACK - PF3 IF WE CAME FROM SOME OTHER PROGRAM
       *****************************************************************
-               WHEN CCARD-AID-PFK03
+               WHEN  CCARD-AID-PFK03
                WHEN CDEMO-PGM-REENTER AND
                     CDEMO-FROM-PROGRAM NOT EQUAL LIT-THISPGM
 
@@ -538,7 +475,7 @@
                     SET CA-LAST-PAGE-NOT-SHOWN TO TRUE
 
                     MOVE WS-CA-FIRST-CARD-NUM
-                                  TO WS-CARD-RID-CARDNUM
+                                  TO LK-START-KEY
 
                     PERFORM 9000-READ-FORWARD
                        THRU 9000-READ-FORWARD-EXIT
@@ -550,8 +487,8 @@
       *****************************************************************
                WHEN CCARD-AID-PFK08
                     AND CA-NEXT-PAGE-EXISTS
-                    MOVE WS-CA-LAST-CARD-NUM
-                                  TO WS-CARD-RID-CARDNUM
+      *              MOVE WS-CA-LAST-CARD-NUM
+      *                            TO LK-START-KEY
                     ADD   +1       TO WS-CA-SCREEN-NUM
                     PERFORM 9000-READ-FORWARD
                        THRU 9000-READ-FORWARD-EXIT
@@ -562,22 +499,20 @@
       *        PAGE UP
       *****************************************************************
                WHEN CCARD-AID-PFK07
-                    AND NOT CA-FIRST-PAGE
-
+      *              AND NOT CA-FIRST-PAGE
                     MOVE WS-CA-FIRST-CARD-NUM
-                                  TO WS-CARD-RID-CARDNUM
+                                  TO LK-START-KEY
                     SUBTRACT 1    FROM WS-CA-SCREEN-NUM
                     PERFORM 9100-READ-BACKWARDS
                        THRU 9100-READ-BACKWARDS-EXIT
                     PERFORM 1000-SEND-MAP
                        THRU 1000-SEND-MAP-EXIT
                     GO TO COMMON-RETURN
-      ***************************************************************
-      *        TRANSFER TO CARD DETAIL VIEW OR UPDATE
+      *****************************************************************
+      *        TRANSFER TO CARD DETAIL VIEW
       *****************************************************************
                WHEN CCARD-AID-ENTER
-                AND (VIEW-REQUESTED-ON(I-SELECTED) OR
-                     UPDATE-REQUESTED-ON(I-SELECTED))
+                AND VIEW-REQUESTED-ON(I-SELECTED)
                 AND CDEMO-FROM-PROGRAM  EQUAL LIT-THISPGM
                    MOVE LIT-THISTRANID    TO CDEMO-FROM-TRANID
                    MOVE LIT-THISPGM       TO CDEMO-FROM-PROGRAM
@@ -585,39 +520,46 @@
                    SET  CDEMO-PGM-ENTER   TO TRUE
                    MOVE LIT-THISMAPSET    TO CDEMO-LAST-MAPSET
                    MOVE LIT-THISMAP       TO CDEMO-LAST-MAP
+                   MOVE LIT-CARDDTLPGM    TO CCARD-NEXT-PROG
 
-      *            Route to appropriate program based on action
-                   IF VIEW-REQUESTED-ON(I-SELECTED)
-      *               User selected 'S' - go to view/detail program
-                      MOVE LIT-CARDDTLPGM    TO CCARD-NEXT-PROG
-                      MOVE LIT-CARDDTLMAPSET TO CCARD-NEXT-MAPSET
-                      MOVE LIT-CARDDTLMAP    TO CCARD-NEXT-MAP
-                   ELSE
-      *               User selected 'U' - go to update program
-                      MOVE LIT-CARDUPDPGM    TO CCARD-NEXT-PROG
-                      MOVE LIT-CARDUPDMAPSET TO CCARD-NEXT-MAPSET
-                      MOVE LIT-CARDUPDMAP    TO CCARD-NEXT-MAP
-                   END-IF
+                   MOVE LIT-CARDDTLMAPSET TO CCARD-NEXT-MAPSET
+                   MOVE LIT-CARDDTLMAP    TO CCARD-NEXT-MAP
 
                    MOVE WS-ROW-ACCTNO (I-SELECTED)
                                           TO CDEMO-ACCT-ID
                    MOVE WS-ROW-CARD-NUM (I-SELECTED)
                                           TO CDEMO-CARD-NUM
 
-      *            CALL APPROPRIATE PROGRAM
+      *            CALL CARD DETAIL PROGRAM
       *
+                   EXEC CICS XCTL
+                        PROGRAM (CCARD-NEXT-PROG)
+                        COMMAREA(CARDDEMO-COMMAREA)
+                   END-EXEC
+      *****************************************************************
+      *        TRANSFER TO CARD UPDATED PROGRAM
+      *****************************************************************
+               WHEN CCARD-AID-ENTER
+                AND UPDATE-REQUESTED-ON(I-SELECTED)
+                AND CDEMO-FROM-PROGRAM  EQUAL LIT-THISPGM
+                   MOVE LIT-THISTRANID    TO CDEMO-FROM-TRANID
+                   MOVE LIT-THISPGM       TO CDEMO-FROM-PROGRAM
+                   SET  CDEMO-USRTYP-USER TO TRUE
+                   SET  CDEMO-PGM-ENTER   TO TRUE
+                   MOVE LIT-THISMAPSET    TO CDEMO-LAST-MAPSET
+                   MOVE LIT-THISMAP       TO CDEMO-LAST-MAP
+                   MOVE LIT-CARDUPDPGM    TO CCARD-NEXT-PROG
 
-                     DISPLAY 'DEBUG: I-SELECTED = '
-                      I-SELECTED
-                     DISPLAY 'DEBUG: WS-ROW-ACCTNO = '
-                     WS-ROW-ACCTNO(I-SELECTED)
-                     DISPLAY 'DEBUG: WS-ROW-CARD-NUM = '
-                      WS-ROW-CARD-NUM(I-SELECTED)
-                     DISPLAY 'DEBUG: CDEMO-ACCT-ID = '
-                     CDEMO-ACCT-ID
-                     DISPLAY 'DEBUG: CDEMO-CARD-NUM = '
-                     CDEMO-CARD-NUM
+                   MOVE LIT-CARDUPDMAPSET TO CCARD-NEXT-MAPSET
+                   MOVE LIT-CARDUPDMAP    TO CCARD-NEXT-MAP
 
+                   MOVE WS-ROW-ACCTNO (I-SELECTED)
+                                          TO CDEMO-ACCT-ID
+                   MOVE WS-ROW-CARD-NUM (I-SELECTED)
+                                          TO CDEMO-CARD-NUM
+
+      *            CALL CARD UPDATE PROGRAM
+      *
                    EXEC CICS XCTL
                         PROGRAM (CCARD-NEXT-PROG)
                         COMMAREA(CARDDEMO-COMMAREA)
@@ -627,7 +569,7 @@
                WHEN OTHER
       *****************************************************************
                     MOVE WS-CA-FIRST-CARD-NUM
-                                  TO WS-CARD-RID-CARDNUM
+                                  TO LK-START-KEY
                     PERFORM 9000-READ-FORWARD
                        THRU 9000-READ-FORWARD-EXIT
                     PERFORM 1000-SEND-MAP
@@ -645,6 +587,8 @@
               MOVE LIT-THISPGM     TO CCARD-NEXT-PROG
               MOVE LIT-THISMAPSET  TO CCARD-NEXT-MAPSET
               MOVE LIT-THISMAP     TO CCARD-NEXT-MAP
+      *       PERFORM 1000-SEND-MAP
+      *          THRU 1000-SEND-MAP
               GO TO COMMON-RETURN
            END-IF
 
@@ -662,15 +606,14 @@
                   WS-COMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:
                                LENGTH OF WS-THIS-PROGCOMMAREA )
 
-           PERFORM 9999-CLOSE-CURSOR
-              THRU 9999-CLOSE-CURSOR-EXIT
-
            EXEC CICS RETURN
                 TRANSID (LIT-THISTRANID)
                 COMMAREA (WS-COMMAREA)
                 LENGTH(LENGTH OF WS-COMMAREA)
            END-EXEC
+
            .
+
        0000-MAIN-EXIT.
            EXIT
            .
@@ -774,7 +717,6 @@
               MOVE WS-ROW-CARD-NUM(5)      TO CRDNUM5O OF CCRDLIAO
               MOVE WS-ROW-CARD-STATUS(5)   TO CRDSTS5O OF CCRDLIAO
            END-IF
-
 
            IF   WS-EACH-CARD(6)        EQUAL LOW-VALUES
               CONTINUE
@@ -913,9 +855,12 @@
                   WHEN CDEMO-CARD-NUM = 0
                      MOVE LOW-VALUES   TO CARDSIDO OF CCRDLIAO
                   WHEN OTHER
-                    MOVE CDEMO-CARD-NUM
-                                       TO CARDSIDO OF CCRDLIAO
-                    MOVE DFHBMFSE      TO CARDSIDA OF CCRDLIAI
+                    IF CDEMO-CARD-NUM IS NUMERIC AND CDEMO-CARD-NUM > 0
+                        MOVE CDEMO-CARD-NUM TO CARDSIDO OF CCRDLIAO
+                        MOVE DFHBMFSE      TO CARDSIDA OF CCRDLIAI
+                    ELSE
+                        MOVE SPACES        TO CARDSIDO OF CCRDLIAO
+                    END-IF
               END-EVALUATE
            END-IF
 
@@ -937,55 +882,51 @@
              MOVE   -1                 TO ACCTSIDL OF CCRDLIAI
            END-IF
 
-
            .
        1300-SETUP-SCREEN-ATTRS-EXIT.
            EXIT
            .
 
-
+      *----------------------------------------------------------------*
+      *                   1400-SETUP-MESSAGE (SIMPLIFIED)
+      *----------------------------------------------------------------*
        1400-SETUP-MESSAGE.
-      *    SETUP MESSAGE
+      *    Only handle screen-specific messages now
+      *    RPC messages come through LK-RETURN-MSG
+
            EVALUATE TRUE
-                WHEN FLG-ACCTFILTER-NOT-OK
-                WHEN FLG-CARDFILTER-NOT-OK
-                  CONTINUE
-                WHEN CCARD-AID-PFK07
-                    AND CA-FIRST-PAGE
-                  MOVE 'NO PREVIOUS PAGES TO DISPLAY'
-                  TO WS-ERROR-MSG
-                WHEN CCARD-AID-PFK08
-                 AND CA-NEXT-PAGE-NOT-EXISTS
-                 AND CA-LAST-PAGE-SHOWN
-                  MOVE 'NO MORE PAGES TO DISPLAY'
-                  TO WS-ERROR-MSG
-                WHEN CCARD-AID-PFK08
-                 AND CA-NEXT-PAGE-NOT-EXISTS
-                  SET WS-INFORM-REC-ACTIONS TO TRUE
-                  IF  CA-LAST-PAGE-NOT-SHOWN
-                  AND CA-NEXT-PAGE-NOT-EXISTS
-                      SET CA-LAST-PAGE-SHOWN TO TRUE
-                  END-IF
-                WHEN WS-NO-INFO-MESSAGE
-                WHEN CA-NEXT-PAGE-EXISTS
-                  SET WS-INFORM-REC-ACTIONS TO TRUE
-                WHEN OTHER
-                   SET WS-NO-INFO-MESSAGE TO TRUE
+               WHEN FLG-ACCTFILTER-NOT-OK
+               WHEN FLG-CARDFILTER-NOT-OK
+      *           These validation errors are screen-specific
+                   CONTINUE
+
+               WHEN INPUT-ERROR
+      *           Other input validation errors
+                   CONTINUE
+
+               WHEN NOT WS-ERROR-MSG-OFF
+      *           If we already have an error message from RPC, use it
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+
+               WHEN OTHER
+      *           Clear any residual error messages
+                   SET WS-ERROR-MSG-OFF TO TRUE
+
+      *           Set info message for successful displays
+                   IF LK-RECORDS-COUNT > 0
+                      SET WS-INFORM-REC-ACTIONS TO TRUE
+                   END-IF
            END-EVALUATE
 
-           MOVE WS-ERROR-MSG          TO ERRMSGO OF CCRDLIAO
+           MOVE WS-ERROR-MSG TO ERRMSGO OF CCRDLIAO
 
-           IF  NOT WS-NO-INFO-MESSAGE
-           AND NOT WS-NO-RECORDS-FOUND
-              MOVE WS-INFO-MSG        TO INFOMSGO OF CCRDLIAO
-              MOVE DFHNEUTR           TO INFOMSGC OF CCRDLIAO
+           IF NOT WS-NO-INFO-MESSAGE
+              MOVE WS-INFO-MSG TO INFOMSGO OF CCRDLIAO
+              MOVE DFHNEUTR TO INFOMSGC OF CCRDLIAO
            END-IF
-
            .
        1400-SETUP-MESSAGE-EXIT.
-           EXIT
-           .
-
+           EXIT.
 
        1500-SEND-SCREEN.
            EXEC CICS SEND MAP(LIT-THISMAP)
@@ -1076,8 +1017,7 @@
               MOVE ZERO       TO CDEMO-ACCT-ID
               GO TO 2210-EDIT-ACCOUNT-EXIT
            ELSE
-            MOVE CC-ACCT-ID TO CDEMO-ACCT-ID
-
+              MOVE CC-ACCT-ID TO CDEMO-ACCT-ID
               SET FLG-ACCTFILTER-ISVALID TO TRUE
            END-IF
            .
@@ -1172,373 +1112,251 @@
        2250-EDIT-ARRAY-EXIT.
            EXIT
            .
-
+      *----------------------------------------------------------------*
+      *           9000-READ-FORWARD (UPDATED)
+      *----------------------------------------------------------------*
        9000-READ-FORWARD.
-           MOVE LOW-VALUES           TO WS-ALL-ROWS
+      * Clear any previous error messages
+           SET WS-ERROR-MSG-OFF TO TRUE
 
-      *    Set host variables before opening cursor
-           MOVE WS-CARD-RID-CARDNUM  TO HV-SEARCH-CARD-NUM
-           MOVE CDEMO-CARD-NUM       TO HV-SEARCH-CARD-NUM
-           MOVE CDEMO-ACCT-ID        TO HV-SEARCH-ACCT-ID
-           MOVE WS-EDIT-ACCT-FLAG    TO HV-ACCT-FILTER-FLAG
-           MOVE WS-EDIT-CARD-FLAG    TO HV-CARD-FILTER-FLAG.
-
-      *****************************************************************
-      *    Open Cursor for Forward Read
-      *****************************************************************
-           PERFORM 9999-CLOSE-CURSOR
-              THRU 9999-CLOSE-CURSOR-EXIT
-
-              IF HV-ACCT-FILTER-FLAG = ' '
-                 EXEC SQL
-                        OPEN CARD_CURSOR_ALL
-                 END-EXEC
-              ELSE
-                 EXEC SQL
-                        OPEN CARD_CURSOR_FILTERED
-                 END-EXEC
-              END-IF.
-
-           MOVE SQLCODE TO WS-SQLCODE
-           IF WS-SQLCODE NOT = 0
-              MOVE 'OPEN'                 TO ERROR-OPNAME
-              MOVE LIT-CARD-TABLE         TO ERROR-TABLE
-              MOVE WS-SQLCODE             TO ERROR-SQLCODE
-              MOVE WS-DB2-ERROR-MESSAGE   TO WS-ERROR-MSG
-              GO TO 9000-READ-FORWARD-EXIT
+      * Check if this is first entry (no records on screen)
+           IF WS-CA-FIRST-CARD-NUM = SPACES OR
+              WS-CA-FIRST-CARD-NUM = LOW-VALUES
+               MOVE SPACES TO LK-START-KEY
+           ELSE
+               MOVE WS-CA-FIRST-CARD-NUM TO LK-START-KEY
            END-IF
 
-           SET WS-CURSOR-OPEN         TO TRUE
-           SET WS-MORE-ROWS           TO TRUE
+      * Set direction based on PF key
+           IF CCARD-AID-PFK08
+               MOVE 'F' TO LK-PAGE-DIR
+           ELSE IF CCARD-AID-PFK07
+                    MOVE 'B' TO LK-PAGE-DIR
+                ELSE
+                    MOVE SPACE TO LK-PAGE-DIR
+                END-IF
+           END-IF
 
-      *****************************************************************
-      *    Loop through records and fetch max screen records
-      *****************************************************************
-           MOVE ZEROES TO WS-SCRN-COUNTER
-           SET CA-NEXT-PAGE-EXISTS    TO TRUE
-           SET MORE-RECORDS-TO-READ   TO TRUE
+      * Set filter criteria from screen input
+           IF EIBCALEN > 0 AND CDEMO-FROM-PROGRAM EQUAL LIT-THISPGM
+               IF CC-ACCT-ID NOT = SPACES AND LOW-VALUES
+                   MOVE CC-ACCT-ID TO LK-FILTER-ACCT-ID
+               ELSE
+                   MOVE SPACES TO LK-FILTER-ACCT-ID
+               END-IF
 
-           PERFORM UNTIL READ-LOOP-EXIT
+               IF CC-CARD-NUM NOT = SPACES AND LOW-VALUES
+                   MOVE CC-CARD-NUM TO LK-FILTER-CARD-NUM
+               ELSE
+                   MOVE SPACES TO LK-FILTER-CARD-NUM
+               END-IF
+           ELSE
+               MOVE SPACES TO LK-FILTER-ACCT-ID
+               MOVE SPACES TO LK-FILTER-CARD-NUM
+           END-IF
 
+           MOVE 7 TO LK-MAX-RECORDS
 
-              IF HV-ACCT-FILTER-FLAG = SPACE
-                  EXEC SQL
-                      FETCH CARD_CURSOR_ALL
-                      INTO :HV-CARD-NUM,
-                           :HV-CARD-ACCT-ID,
-                           :HV-CARD-ACTIVE-STATUS
-                  END-EXEC
-              ELSE
-                  EXEC SQL
-                      FETCH CARD_CURSOR_FILTERED
-                      INTO :HV-CARD-NUM,
-                           :HV-CARD-ACCT-ID,
-                           :HV-CARD-ACTIVE-STATUS
-                  END-EXEC
-              END-IF
+           PERFORM CALL-RPC-PROGRAM
 
-           MOVE SQLCODE TO WS-SQLCODE
-           EVALUATE WS-SQLCODE
+      * Handle response from RPC - use RPC messages
+           EVALUATE LK-RETURN-CODE
                WHEN 0
-                   MOVE HV-CARD-NUM          TO CARD-NUM
-                   MOVE HV-CARD-ACCT-ID      TO CARD-ACCT-ID
-                   MOVE HV-CARD-ACTIVE-STATUS TO CARD-ACTIVE-STATUS
+      *           Success - populate screen
+                   PERFORM POPULATE-SCREEN-FROM-RPC
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
 
-                   PERFORM 9500-FILTER-RECORDS
-                      THRU 9500-FILTER-RECORDS-EXIT
+               WHEN 1
+      *           Filter error - message already in LK-RETURN-MSG
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+                   SET INPUT-ERROR TO TRUE
 
-                   IF WS-DONOT-EXCLUDE-THIS-RECORD
-                      ADD 1             TO WS-SCRN-COUNTER
+               WHEN 2
+      *           DB error - message already in LK-RETURN-MSG
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+                   SET ERR-FLG-ON TO TRUE
 
-                      MOVE CARD-NUM     TO WS-ROW-CARD-NUM(
-                      WS-SCRN-COUNTER)
-                      MOVE CARD-ACCT-ID TO
-                      WS-ROW-ACCTNO(WS-SCRN-COUNTER)
-                      MOVE CARD-ACTIVE-STATUS
-                                        TO WS-ROW-CARD-STATUS(
-                                        WS-SCRN-COUNTER)
+               WHEN 3
+      *           No records - message already in LK-RETURN-MSG
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
 
-                      IF WS-SCRN-COUNTER = 1
-                         MOVE CARD-ACCT-ID
-                                        TO WS-CA-FIRST-CARD-ACCT-ID
-                         MOVE CARD-NUM  TO WS-CA-FIRST-CARD-NUM
-                         IF   WS-CA-SCREEN-NUM = 0
-                           ADD   +1     TO WS-CA-SCREEN-NUM
-                         ELSE
-                           CONTINUE
-                         END-IF
-                      ELSE
-                         CONTINUE
-                      END-IF
-                   ELSE
-                       CONTINUE
-                   END-IF
-      ******************************************************************
-      *            Max Screen size
-      ******************************************************************
-                   IF WS-SCRN-COUNTER = WS-MAX-SCREEN-LINES
-                      SET READ-LOOP-EXIT  TO TRUE
-
-                      MOVE CARD-ACCT-ID     TO WS-CA-LAST-CARD-ACCT-ID
-                      MOVE CARD-NUM         TO WS-CA-LAST-CARD-NUM
-
-                      EXEC SQL
-                        FETCH CARD_CURSOR
-                        INTO :HV-CARD-NUM,
-                             :HV-CARD-ACCT-ID,
-                             :HV-CARD-ACTIVE-STATUS
-                      END-EXEC
-
-                      MOVE SQLCODE TO WS-SQLCODE
-                      EVALUATE WS-SQLCODE
-                         WHEN 0
-                              MOVE HV-CARD-NUM      TO CARD-NUM
-                              MOVE HV-CARD-ACCT-ID  TO CARD-ACCT-ID
-                              MOVE HV-CARD-ACTIVE-STATUS
-                              TO CARD-ACTIVE-STATUS
-                              SET CA-NEXT-PAGE-EXISTS
-                                                TO TRUE
-                              MOVE CARD-ACCT-ID TO
-                                   WS-CA-LAST-CARD-ACCT-ID
-                              MOVE CARD-NUM     TO WS-CA-LAST-CARD-NUM
-                        WHEN +100
-                            SET CA-NEXT-PAGE-NOT-EXISTS     TO TRUE
-
-                            IF WS-ERROR-MSG-OFF
-                                MOVE 'NO MORE RECORDS TO SHOW'
-                                                TO WS-ERROR-MSG
-                            END-IF
-                            WHEN OTHER
-      *                     This is some kind of error
-                            SET READ-LOOP-EXIT      TO TRUE
-                            MOVE 'FETCH'             TO ERROR-OPNAME
-                            MOVE LIT-CARD-TABLE      TO ERROR-TABLE
-                            MOVE WS-SQLCODE          TO ERROR-SQLCODE
-                            MOVE WS-DB2-ERROR-MESSAGE TO WS-ERROR-MSG
-                      END-EVALUATE
-                  END-IF
-               WHEN +100
-                  SET read-LOOP-EXIT              TO TRUE
-                  SET CA-NEXT-PAGE-NOT-EXISTS     TO TRUE
-                  MOVE CARD-ACCT-ID     TO WS-CA-LAST-CARD-ACCT-ID
-                  MOVE CARD-NUM         TO WS-CA-LAST-CARD-NUM
-                  IF WS-ERROR-MSG-OFF
-                     MOVE 'NO MORE RECORDS TO SHOW'  TO WS-ERROR-MSG
-                  END-IF
-                  IF WS-CA-SCREEN-NUM = 1
-                  AND WS-SCRN-COUNTER = 0
-                      SET WS-NO-RECORDS-FOUND    TO TRUE
-                  END-IF
                WHEN OTHER
-      *           This is some kind of error
-                  SET read-LOOP-EXIT             TO TRUE
-                  MOVE 'FETCH'                   TO ERROR-OPNAME
-                  MOVE LIT-CARD-TABLE            TO ERROR-TABLE
-                  MOVE WS-SQLCODE                TO ERROR-SQLCODE
-                  MOVE WS-DB2-ERROR-MESSAGE      TO WS-ERROR-MSG
+      *           Unexpected return code
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+                   SET ERR-FLG-ON TO TRUE
            END-EVALUATE
-           END-PERFORM
-
-           PERFORM 9999-CLOSE-CURSOR
-              THRU 9999-CLOSE-CURSOR-EXIT
            .
        9000-READ-FORWARD-EXIT.
-           EXIT
-           .
+           EXIT.
+
+      *----------------------------------------------------------------*
+      *           9100-READ-BACKWARDS (UPDATED)
+      *----------------------------------------------------------------*
        9100-READ-BACKWARDS.
-
-           MOVE LOW-VALUES           TO WS-ALL-ROWS
-
-           MOVE WS-CA-FIRST-CARDKEY  TO WS-CA-LAST-CARDKEY
-
-      *    Set host variables before opening cursor
-           MOVE WS-CARD-RID-CARDNUM  TO HV-SEARCH-CARD-NUM
-           MOVE WS-CARD-RID-ACCT-ID  TO HV-SEARCH-ACCT-ID
-           MOVE WS-EDIT-ACCT-FLAG    TO HV-ACCT-FILTER-FLAG
-           MOVE WS-EDIT-CARD-FLAG    TO HV-CARD-FILTER-FLAG
-
-      *****************************************************************
-      *    Open Cursor for Backward Read
-      *****************************************************************
-           PERFORM 9999-CLOSE-CURSOR
-              THRU 9999-CLOSE-CURSOR-EXIT
-
-           EXEC SQL
-               OPEN CARD_CURSOR_PREV
-           END-EXEC
-
-           MOVE SQLCODE TO WS-SQLCODE
-           IF WS-SQLCODE NOT = 0
-
-              MOVE 'OPEN'                 TO ERROR-OPNAME
-              MOVE LIT-CARD-TABLE         TO ERROR-TABLE
-              MOVE WS-SQLCODE             TO ERROR-SQLCODE
-              MOVE WS-DB2-ERROR-MESSAGE   TO WS-ERROR-MSG
-              GO TO 9100-READ-BACKWARDS-EXIT
+      * Clear any previous error messages
+           SET WS-ERROR-MSG-OFF TO TRUE
+           MOVE LOW-VALUES TO WS-ALL-ROWS
+      * Set up RPC call for backward paging
+           MOVE SPACES TO LK-INPUT-PARAMS LK-OUTPUT-PARAMS
+           MOVE 'B' TO LK-PAGE-DIR
+           MOVE 7 TO LK-MAX-RECORDS
+      * Preserve filter criteria from screen
+           IF CC-ACCT-ID NOT = SPACES AND LOW-VALUES
+               MOVE CC-ACCT-ID TO LK-FILTER-ACCT-ID
+           ELSE
+               MOVE SPACES TO LK-FILTER-ACCT-ID
            END-IF
-
-           SET WS-CURSOR-OPEN         TO TRUE
-           SET WS-MORE-ROWS           TO TRUE
-
-      *****************************************************************
-      *    Loop through records and fetch max screen records
-      *****************************************************************
-           COMPUTE WS-SCRN-COUNTER =
-                                   WS-MAX-SCREEN-LINES + 1
-           END-COMPUTE
-           SET CA-NEXT-PAGE-EXISTS    TO TRUE
-           SET MORE-RECORDS-TO-READ   TO TRUE
-
-      *****************************************************************
-      *    Now we show the records from previous set.
-      *****************************************************************
-
-
-           EXEC SQL
-               FETCH CARD_CURSOR_PREV
-               INTO :HV-CARD-NUM,
-                    :HV-CARD-ACCT-ID,
-                    :HV-CARD-ACTIVE-STATUS
-           END-EXEC
-
-           MOVE SQLCODE TO WS-SQLCODE
-           EVALUATE WS-SQLCODE
+           IF CC-CARD-NUM NOT = SPACES AND LOW-VALUES
+               MOVE CC-CARD-NUM TO LK-FILTER-CARD-NUM
+           ELSE
+               MOVE SPACES TO LK-FILTER-CARD-NUM
+           END-IF
+           IF WS-CA-FIRST-CARD-NUM NOT = SPACES
+               MOVE WS-CA-FIRST-CARD-NUM TO LK-START-KEY
+           ELSE
+               MOVE SPACES TO LK-START-KEY
+           END-IF
+           PERFORM CALL-RPC-PROGRAM
+      * Handle response from RPC - use RPC messages
+           EVALUATE LK-RETURN-CODE
                WHEN 0
-                   MOVE HV-CARD-NUM          TO CARD-NUM
-                   MOVE HV-CARD-ACCT-ID      TO CARD-ACCT-ID
-                   MOVE HV-CARD-ACTIVE-STATUS TO CARD-ACTIVE-STATUS
-                   SUBTRACT 1          FROM WS-SCRN-COUNTER
-               WHEN OTHER
-      *           This is some kind of error
-                  SET read-LOOP-EXIT             TO TRUE
-                  MOVE 'FETCH'                   TO ERROR-OPNAME
-                  MOVE LIT-CARD-TABLE            TO ERROR-TABLE
-                  MOVE WS-SQLCODE                TO ERROR-SQLCODE
-                  MOVE WS-DB2-ERROR-MESSAGE      TO WS-ERROR-MSG
-                  GO TO 9100-READ-BACKWARDS-EXIT
-           END-EVALUATE
+      *           Success - populate screen
+                   PERFORM POPULATE-SCREEN-FROM-RPC
+                    MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+               WHEN 1
+      *           Filter error - message already in LK-RETURN-MSG
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+                   SET INPUT-ERROR TO TRUE
 
-           PERFORM UNTIL READ-LOOP-EXIT
+               WHEN 2
+      *           DB error - message already in LK-RETURN-MSG
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+                   SET ERR-FLG-ON TO TRUE
 
-           EXEC SQL
-               FETCH CARD_CURSOR_PREV
-               INTO :HV-CARD-NUM,
-                    :HV-CARD-ACCT-ID,
-                    :HV-CARD-ACTIVE-STATUS
-           END-EXEC
+               WHEN 3
+      *           No records - message already in LK-RETURN-MSG
 
-           MOVE SQLCODE TO WS-SQLCODE
-           EVALUATE WS-SQLCODE
-               WHEN 0
-                   MOVE HV-CARD-NUM          TO CARD-NUM
-                   MOVE HV-CARD-ACCT-ID      TO CARD-ACCT-ID
-                   MOVE HV-CARD-ACTIVE-STATUS TO CARD-ACTIVE-STATUS
-
-                   PERFORM 9500-FILTER-RECORDS
-                      THRU 9500-FILTER-RECORDS-EXIT
-                   IF WS-DONOT-EXCLUDE-THIS-RECORD
-                      MOVE CARD-NUM
-                                  TO WS-ROW-CARD-NUM(WS-SCRN-COUNTER)
-                      MOVE CARD-ACCT-ID
-                                  TO WS-ROW-ACCTNO(WS-SCRN-COUNTER)
-                      MOVE CARD-ACTIVE-STATUS
-                                  TO
-                                  WS-ROW-CARD-STATUS(WS-SCRN-COUNTER)
-
-                      SUBTRACT 1  FROM WS-SCRN-COUNTER
-                      IF WS-SCRN-COUNTER = 0
-                         SET read-LOOP-EXIT  TO TRUE
-
-                         MOVE CARD-ACCT-ID
-                                  TO WS-CA-FIRST-CARD-ACCT-ID
-                         MOVE CARD-NUM
-                                  TO WS-CA-FIRST-CARD-NUM
-                      ELSE
-                         CONTINUE
-                      END-IF
-                   ELSE
-                       CONTINUE
-                   END-IF
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
 
                WHEN OTHER
-      *           This is some kind of error
-                  SET read-LOOP-EXIT             TO TRUE
-                  MOVE 'FETCH'                   TO ERROR-OPNAME
-                  MOVE LIT-CARD-TABLE            TO ERROR-TABLE
-                  MOVE WS-SQLCODE                TO ERROR-SQLCODE
-                  MOVE WS-DB2-ERROR-MESSAGE      TO WS-ERROR-MSG
+      *           Unexpected return code
+                   MOVE LK-RETURN-MSG TO WS-ERROR-MSG
+                   SET ERR-FLG-ON TO TRUE
            END-EVALUATE
-           END-PERFORM
            .
-
        9100-READ-BACKWARDS-EXIT.
-           PERFORM 9999-CLOSE-CURSOR
-              THRU 9999-CLOSE-CURSOR-EXIT
-           EXIT
-           .
+           EXIT.
 
-       9500-FILTER-RECORDS.
-           SET WS-DONOT-EXCLUDE-THIS-RECORD TO TRUE
+      *----------------------------------------------------------------*
+      *                      CALL-RPC-PROGRAM
+      *----------------------------------------------------------------*
+       CALL-RPC-PROGRAM.
 
-           IF FLG-ACCTFILTER-ISVALID
+           EXEC CICS LINK
+                PROGRAM(WS-RPC-PROGRAM)
+                COMMAREA(WS-RPC-COMMAREA)
+                LENGTH(LENGTH OF LK-INPUT-PARAMS)
+                RESP(WS-RESP-CD)
+                RESP2(WS-REAS-CD)
+           END-EXEC
 
-               IF  CARD-ACCT-ID = CC-ACCT-ID
+           MOVE WS-RESP-CD TO WS-RESP-DISP.
+           MOVE WS-REAS-CD TO WS-REAS-DISP.
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
                    CONTINUE
+
+               WHEN DFHRESP(PGMIDERR)
+                   SET ERR-FLG-ON TO TRUE
+                   MOVE 'COCRDLIL program not found' TO LK-RETURN-MSG
+               WHEN OTHER
+                   SET ERR-FLG-ON TO TRUE
+                   MOVE 'Error calling RPC program' TO LK-RETURN-MSG
+           END-EVALUATE.
+
+      *----------------------------------------------------------------*
+      *         POPULATE-SCREEN-FROM-RPC (UPDATED)
+      *----------------------------------------------------------------*
+       POPULATE-SCREEN-FROM-RPC.
+      * Populate WS-SCREEN-DATA array from RPC results
+           MOVE ZEROES TO WS-SCRN-COUNTER
+           MOVE LOW-VALUES TO WS-ALL-ROWS
+           SET CA-NEXT-PAGE-EXISTS TO TRUE
+
+           PERFORM VARYING I FROM 1 BY 1
+             UNTIL I > LK-RECORDS-COUNT OR I > 7
+               ADD 1 TO WS-SCRN-COUNTER
+               MOVE LK-CARD-ACCT-ID(I) TO WS-ROW-ACCTNO(I)
+               MOVE LK-CARD-NUM(I) TO WS-ROW-CARD-NUM(I)
+               MOVE LK-CARD-ACTIVE-STATUS(I) TO WS-ROW-CARD-STATUS(I)
+
+               IF I = 1
+                   MOVE LK-CARD-ACCT-ID(I) TO WS-CA-FIRST-CARD-ACCT-ID
+                   MOVE LK-CARD-NUM(I) TO WS-CA-FIRST-CARD-NUM
+                   IF WS-CA-SCREEN-NUM = 0
+                       ADD +1 TO WS-CA-SCREEN-NUM
+                   END-IF
+               END-IF
+           END-PERFORM
+
+
+
+      * Set pagination flags based on actual results
+      * Don't create messages here - RPC handles that
+           IF LK-RECORDS-COUNT > 0
+               IF LK-RECORDS-COUNT = WS-MAX-SCREEN-LINES
+                   SET CA-NEXT-PAGE-EXISTS TO TRUE
                ELSE
-                   SET WS-EXCLUDE-THIS-RECORD  TO TRUE
-                   GO TO 9500-FILTER-RECORDS-EXIT
+                   SET CA-NEXT-PAGE-NOT-EXISTS TO TRUE
                END-IF
            ELSE
-               CONTINUE
-           END-IF
-
-           IF FLG-CARDFILTER-ISVALID
-              IF  CARD-NUM = CC-CARD-NUM
-                  CONTINUE
-              ELSE
-                  SET WS-EXCLUDE-THIS-RECORD TO TRUE
-                  GO TO 9500-FILTER-RECORDS-EXIT
-              END-IF
-           ELSE
-             CONTINUE
-           END-IF
-
-           .
-
-       9500-FILTER-RECORDS-EXIT.
-           EXIT
-           .
-
-       9999-CLOSE-CURSOR.
-           IF WS-CURSOR-OPEN
-               IF HV-ACCT-FILTER-FLAG = SPACE
-                   EXEC SQL
-                       CLOSE CARD_CURSOR_ALL
-                   END-EXEC
-               ELSE
-                   EXEC SQL
-                       CLOSE CARD_CURSOR_FILTERED
-                   END-EXEC
+               SET CA-NEXT-PAGE-NOT-EXISTS TO TRUE
+               IF WS-CA-SCREEN-NUM = 1
+                   CONTINUE
+      *           RPC already set "NO RECORDS FOUND" message
                END-IF
-
-               EXEC SQL
-                   CLOSE CARD_CURSOR_PREV
-               END-EXEC
-
-               SET WS-CURSOR-CLOSED TO TRUE
-           END-IF
-           .
-
-       9999-CLOSE-CURSOR-EXIT.
-           EXIT
-           .
+           END-IF.
 
       *****************************************************************
       *Common code to store PFKey
       *****************************************************************
        COPY 'CSSTRPFY'
            .
+      *****************************************************************
+      * Plain text exit - Dont use in production                      *
+      *****************************************************************
+       SEND-PLAIN-TEXT.
+           EXEC CICS SEND TEXT
+                     FROM(WS-ERROR-MSG)
+                     LENGTH(LENGTH OF WS-ERROR-MSG)
+                     ERASE
+                     FREEKB
+           END-EXEC
 
-      *
-      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT
-      *
+           EXEC CICS RETURN
+           END-EXEC
+           .
+       SEND-PLAIN-TEXT-EXIT.
+           EXIT
+           .
+      *****************************************************************
+      * Display Long text and exit                                    *
+      * This is primarily for debugging and should not be used in     *
+      * regular course                                                *
+      *****************************************************************
+       SEND-LONG-TEXT.
+           EXEC CICS SEND TEXT
+                     FROM(WS-LONG-MSG)
+                     LENGTH(LENGTH OF WS-LONG-MSG)
+                     ERASE
+                     FREEKB
+           END-EXEC
+
+           EXEC CICS RETURN
+           END-EXEC
+           .
+       SEND-LONG-TEXT-EXIT.
+           EXIT
+           .
+

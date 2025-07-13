@@ -1,9 +1,9 @@
       ************************************************************
-      * Program     : COUSR02S.CBL
+      * Program     : COUSR02U.CBL
       * Function    : Update User Screen with RPC calls
       ******************************************************************
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. COUSR02S.
+       PROGRAM-ID. COUSR02U.
 
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
@@ -12,10 +12,10 @@
        WORKING-STORAGE SECTION.
 
        01 WS-VARIABLES.
-         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR02S'.
-         05 WS-TRANID                  PIC X(04) VALUE 'ALS2'.
+         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR02U'.
+         05 WS-TRANID                  PIC X(04) VALUE 'AAS2'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
-         05 WS-RPC-PROGRAM             PIC X(08) VALUE 'COUSR02L'.
+         05 WS-RPC-PROGRAM             PIC X(08) VALUE 'COUSR02A'.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                         VALUE 'Y'.
            88 ERR-FLG-OFF                        VALUE 'N'.
@@ -80,7 +80,7 @@
 
 
            IF EIBCALEN = 0
-               MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
@@ -103,7 +103,7 @@
                        WHEN DFHPF3
                            PERFORM UPDATE-USER-INFO
                            IF CDEMO-FROM-PROGRAM = SPACES OR LOW-VALUES
-                            MOVE 'COADM01S' TO CDEMO-TO-PROGRAM
+                            MOVE 'COADM01U' TO CDEMO-TO-PROGRAM
                            ELSE
                             MOVE CDEMO-FROM-PROGRAM TO CDEMO-TO-PROGRAM
                            END-IF
@@ -113,7 +113,7 @@
                        WHEN DFHPF5
                            PERFORM UPDATE-USER-INFO
                        WHEN DFHPF12
-                           MOVE 'COADM01S' TO CDEMO-TO-PROGRAM
+                           MOVE 'COADM01U' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-PREV-SCREEN
                        WHEN OTHER
                            MOVE 'Y' TO WS-ERR-FLG
@@ -256,7 +256,7 @@
        RETURN-TO-PREV-SCREEN.
 
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES
-               MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
            END-IF
            MOVE WS-TRANID TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM

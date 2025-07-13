@@ -1,5 +1,5 @@
       ***********************************************************
-      * Program:     COCRDUPS.CBL                                     *
+      * Program:     COCRDUPU.CBL                                     *
       * Layer:       Screen/UI logic only                             *
       * Function:    Accept and process credit card detail request    *
       *              (Screen interactions only - no file access)      *
@@ -22,7 +22,7 @@
 
        IDENTIFICATION DIVISION.
        PROGRAM-ID.
-           COCRDUPS.
+           COCRDUPU.
        DATE-WRITTEN.
            April 2022.
        DATE-COMPILED.
@@ -190,15 +190,15 @@
       ******************************************************************
        01 WS-LITERALS.
           05 LIT-THISPGM                           PIC X(8)
-                                                   VALUE 'COCRDUPS'.
+                                                   VALUE 'COCRDUPU'.
           05 LIT-THISTRANID                        PIC X(4)
-                                                   VALUE 'ALS7'.
+                                                   VALUE 'AAS7'.
           05 LIT-THISMAPSET                        PIC X(8)
                                                    VALUE 'COCRDUP '.
           05 LIT-THISMAP                           PIC X(7)
                                                    VALUE 'CCRDUPA'.
           05 LIT-CCLISTPGM                         PIC X(8)
-                                                   VALUE 'COCRDLIS'.
+                                                   VALUE 'COCRDLIU'.
           05 LIT-CCLISTTRANID                      PIC X(4)
                                                    VALUE 'ALS4'.
           05 LIT-CCLISTMAPSET                      PIC X(7)
@@ -206,23 +206,23 @@
           05 LIT-CCLISTMAP                         PIC X(7)
                                                    VALUE 'CCRDSLA'.
           05 LIT-MENUPGM                           PIC X(8)
-                                                   VALUE 'COMEN01S'.
+                                                   VALUE 'COMEN01U'.
           05 LIT-MENUTRANID                        PIC X(4)
-                                                   VALUE 'ALUM'.
+                                                   VALUE 'AAUM'.
           05 LIT-MENUMAPSET                        PIC X(7)
                                                    VALUE 'COMEN01'.
           05 LIT-MENUMAP                           PIC X(7)
                                                    VALUE 'COMEN1A'.
           05  LIT-CARDDTLPGM                       PIC X(8)
-                                                   VALUE 'COCRDSLS'.
+                                                   VALUE 'COCRDSLU'.
           05  LIT-CARDDTLTRANID                    PIC X(4)
-                                                   VALUE 'ALS6'.
+                                                   VALUE 'AAS6'.
           05  LIT-CARDDTLMAPSET                    PIC X(7)
                                                    VALUE 'COCRDSL'.
           05  LIT-CARDDTLMAP                       PIC X(7)
                                                    VALUE 'CCRDSLA'.
           05 LIT-RPC-PROGRAM                       PIC X(8)
-                                                   VALUE 'COCRDUPL'.
+                                                   VALUE 'COCRDUPA'.
           05 LIT-ALL-ALPHA-FROM                    PIC X(52)
              VALUE
              'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
@@ -1357,7 +1357,8 @@
                    IF  WS-RETURN-MSG-OFF
                        SET FLG-ACCTFILTER-NOT-OK      TO TRUE
                    END-IF
-                 MOVE 'RPC Program COCRDUPA not found' TO WS-RETURN-MSG
+                   MOVE 'RPC Program COCRDUPA not found'
+                    TO WS-RETURN-MSG
                WHEN OTHER
                    SET INPUT-ERROR                    TO TRUE
                    IF  WS-RETURN-MSG-OFF
@@ -1402,13 +1403,13 @@
                        WHEN RC-LOCK-ERROR
                            SET COULD-NOT-LOCK-FOR-UPDATE TO TRUE
                        WHEN RC-DATA-CHANGED
-                         SET DATA-WAS-CHANGED-BEFORE-UPDATE TO TRUE
-                         MOVE LK-OUT-CVV-CD          TO CCUP-OLD-CVV-CD
-                         MOVE LK-OUT-CARD-NAME       TO CCUP-OLD-CRDNAME
-                         MOVE LK-OUT-EXPIRY-YEAR     TO CCUP-OLD-EXPYEAR
-                         MOVE LK-OUT-EXPIRY-MONTH    TO CCUP-OLD-EXPMON
-                         MOVE LK-OUT-EXPIRY-DAY      TO CCUP-OLD-EXPDAY
-                         MOVE LK-OUT-CARD-STATUS     TO CCUP-OLD-CRDSTCD
+                        SET DATA-WAS-CHANGED-BEFORE-UPDATE TO TRUE
+                        MOVE LK-OUT-CVV-CD          TO CCUP-OLD-CVV-CD
+                        MOVE LK-OUT-CARD-NAME       TO CCUP-OLD-CRDNAME
+                        MOVE LK-OUT-EXPIRY-YEAR     TO CCUP-OLD-EXPYEAR
+                        MOVE LK-OUT-EXPIRY-MONTH    TO CCUP-OLD-EXPMON
+                        MOVE LK-OUT-EXPIRY-DAY      TO CCUP-OLD-EXPDAY
+                        MOVE LK-OUT-CARD-STATUS     TO CCUP-OLD-CRDSTCD
                        WHEN RC-DATABASE-ERROR
                            SET LOCKED-BUT-UPDATE-FAILED TO TRUE
                        WHEN OTHER

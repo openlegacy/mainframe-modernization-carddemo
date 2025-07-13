@@ -1,4 +1,4 @@
-*****************************************************************
+      ****************************************************************
       * Program:     COCRDSLS.CBL                                     *
       * Layer:       Screen logic (UI only)                          *
       * Function:    Accept and process credit card detail request    *

@@ -1,10 +1,10 @@
       ************************************************************
-      * Program     :  COUSR00S.CBL
+      * Program     :  COUSR00U.CBL
       * Function    : List Users with RPC calls - Fixed Navigation
       *               Full functionality: Display, Search, Paginate, Select
       ******************************************************************
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. COUSR00S.
+       PROGRAM-ID. COUSR00U.
 
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
@@ -13,10 +13,10 @@
        WORKING-STORAGE SECTION.
 
        01 WS-VARIABLES.
-         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR00S'.
-         05 WS-TRANID                  PIC X(04) VALUE 'ALS0'.
+         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR00U'.
+         05 WS-TRANID                  PIC X(04) VALUE 'AAS0'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
-         05 WS-RPC-PROGRAM             PIC X(08) VALUE 'COUSR00L'.
+         05 WS-RPC-PROGRAM             PIC X(08) VALUE 'COUSR00A'.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                         VALUE 'Y'.
            88 ERR-FLG-OFF                        VALUE 'N'.
@@ -44,7 +44,7 @@
              10 CDEMO-CU00-USR-SEL-FLG     PIC X(01).
              10 CDEMO-CU00-USR-SELECTED    PIC X(08).
 
-      * RPC Communication Area - MUST MATCH COUSR00L EXACTLY
+      * RPC Communication Area - MUST MATCH COUSR00A EXACTLY
        01 WS-RPC-COMMAREA.
            05 LK-INPUT-PARMS.
                10 LK-IN-USER-ID             PIC X(08).
@@ -80,7 +80,7 @@
       * FIXED: Check EIBCALEN and handle commarea like COUSR00C
            IF EIBCALEN = 0
       * No commarea - return to signon
-               MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
       * Has commarea - process it
@@ -99,7 +99,7 @@
                            PERFORM PROCESS-ENTER-KEY
                        WHEN DFHPF3
       * FIXED: Return to admin menu like original
-                           MOVE 'COADM01S' TO CDEMO-TO-PROGRAM
+                           MOVE 'COADM01U' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-PREV-SCREEN
                        WHEN DFHPF7
                            PERFORM PROCESS-PF7-KEY
@@ -311,7 +311,7 @@
                    CONTINUE
                WHEN DFHRESP(PGMIDERR)
                    SET ERR-FLG-ON TO TRUE
-                   MOVE 'COUSR00L program not found' TO WS-MESSAGE
+                   MOVE 'COUSR00A program not found' TO WS-MESSAGE
                WHEN OTHER
                    SET ERR-FLG-ON TO TRUE
                    MOVE 'Error calling RPC program' TO WS-MESSAGE
@@ -473,7 +473,7 @@
        RETURN-TO-PREV-SCREEN.
 
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES
-               MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
            END-IF
            MOVE WS-TRANID TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM

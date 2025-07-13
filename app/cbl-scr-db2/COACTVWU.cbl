@@ -1,7 +1,8 @@
-*****************************************************************
-      * Program:     COACTVWD.CBL                                     *
-      * Layer:       Business logic                                   *
-      * Function:    Accept and process Account View request (DB2)    *
+      ******************************************************************
+      * Program:     COACTVWU.CBL                                     *
+      * Layer:       Presentation                                     *
+      * Function:    Account View Screen - calls COACTVWA RPC         *
+      * Transaction: AAS9                                             *
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -12,7 +13,7 @@
       *
       *    http://www.apache.org/licenses/LICENSE-2.0
       *
-      * Unless required by applicable law or agreed to in F writing,
+      * Unless required by applicable law or agreed to in writing,
       * software distributed under the License is distributed on an
       * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
       * either express or implied. See the License for the specific
@@ -20,9 +21,9 @@
       ******************************************************************
        IDENTIFICATION DIVISION.
        PROGRAM-ID.
-           COACTVWD.
+           COACTVWU.
        DATE-WRITTEN.
-           May 2022.
+           June 2025.
        DATE-COMPILED.
            Today.
 
@@ -40,6 +41,10 @@
             07 WS-RESP-CD                          PIC S9(09) COMP
                                                    VALUE ZEROS.
             07 WS-REAS-CD                          PIC S9(09) COMP
+                                                   VALUE ZEROS.
+            07 WS-RESP-DISP                          PIC 9(09)
+                                                   VALUE ZEROS.
+            07 WS-REAS-DISP                        PIC 9(09)
                                                    VALUE ZEROS.
             07 WS-TRANID                           PIC X(4)
                                                    VALUE SPACES.
@@ -141,56 +146,48 @@
       ******************************************************************
        01 WS-LITERALS.
           05 LIT-THISPGM                           PIC X(8)
-                                                   VALUE 'COACTVWD'.
+                                                   VALUE 'COACTVWU'.
           05 LIT-THISTRANID                        PIC X(4)
-                                                   VALUE 'ADS9'.
+                                                   VALUE 'AAS9'.
           05 LIT-THISMAPSET                        PIC X(8)
                                                    VALUE 'COACTVW '.
           05 LIT-THISMAP                           PIC X(7)
                                                    VALUE 'CACTVWA'.
           05 LIT-CCLISTPGM                         PIC X(8)
-                                                   VALUE 'COCRDLID'.
+                                                   VALUE 'COCRDLIU'.
           05 LIT-CCLISTTRANID                      PIC X(4)
-                                                   VALUE 'ADS4'.
+                                                   VALUE 'AAS4'.
           05 LIT-CCLISTMAPSET                      PIC X(7)
                                                    VALUE 'COCRDLI'.
           05 LIT-CCLISTMAP                         PIC X(7)
                                                    VALUE 'CCRDSLA'.
           05 LIT-CARDUPDATEPGM                           PIC X(8)
-                                                   VALUE 'COCRDUPD'.
+                                                   VALUE 'COCRDUP'.
           05 LIT-CARDUDPATETRANID                        PIC X(4)
-                                                   VALUE 'ADS5'.
+                                                   VALUE 'AAS5'.
           05 LIT-CARDUPDATEMAPSET                        PIC X(8)
                                                    VALUE 'COCRDUP '.
           05 LIT-CARDUPDATEMAP                           PIC X(7)
                                                    VALUE 'CCRDUPA'.
 
           05 LIT-MENUPGM                           PIC X(8)
-                                                   VALUE 'COMEN01D'.
+                                                   VALUE 'COMEN01U'.
           05 LIT-MENUTRANID                        PIC X(4)
-                                                   VALUE 'ADUM'.
+                                                   VALUE 'AAUM'.
           05 LIT-MENUMAPSET                        PIC X(7)
                                                    VALUE 'COMEN01'.
           05 LIT-MENUMAP                           PIC X(7)
                                                    VALUE 'COMEN1A'.
           05  LIT-CARDDTLPGM                       PIC X(8)
-                                                   VALUE 'COCRDSLD'.
+                                                   VALUE 'COCRDSLU'.
           05  LIT-CARDDTLTRANID                    PIC X(4)
-                                                   VALUE 'ADS6'.
+                                                   VALUE 'AAS6'.
           05  LIT-CARDDTLMAPSET                    PIC X(7)
                                                    VALUE 'COCRDSL'.
           05  LIT-CARDDTLMAP                       PIC X(7)
                                                    VALUE 'CCRDSLA'.
-          05 LIT-ACCTFILENAME                      PIC X(8)
-                                                   VALUE 'ACCTDAT '.
-          05 LIT-CARDFILENAME                      PIC X(8)
-                                                   VALUE 'CARDDAT '.
-          05 LIT-CUSTFILENAME                      PIC X(8)
-                                                   VALUE 'CUSTDAT '.
-          05 LIT-CARDFILENAME-ACCT-PATH            PIC X(8)
-                                                   VALUE 'CARDAIX '.
-          05 LIT-CARDXREFNAME-ACCT-PATH            PIC X(8)
-                                                   VALUE 'CXACAIX '.
+          05 LIT-RPC-PROGRAM                       PIC X(8)
+                                                   VALUE 'COACTVWA'.
           05 LIT-ALL-ALPHA-FROM                    PIC X(52)
              VALUE
              'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'.
@@ -200,55 +197,6 @@
                                  VALUE 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.
           05 LIT-LOWER                             PIC X(26)
                                  VALUE 'abcdefghijklmnopqrstuvwxyz'.
-
-      ******************************************************************
-      *DB2 SQL COMMUNICATION AREA
-      ******************************************************************
-       EXEC SQL
-           INCLUDE SQLCA
-       END-EXEC.
-
-      ******************************************************************
-      *DB2 HOST VARIABLES
-      ******************************************************************
-       EXEC SQL BEGIN DECLARE SECTION END-EXEC.
-       01  HV-ACCOUNT-ID                        PIC X(11).
-       01  HV-CUSTOMER-ID                       PIC S9(09) COMP.
-       01  HV-CARD-NUMBER                       PIC X(16).
-       01  HV-SQLCODE-DISPLAY                   PIC S9(09) DISPLAY.
-       01  HV-ACCOUNT-RECORD.
-           05  HV-ACCT-ID                       PIC X(11).
-           05  HV-ACCT-STATUS                   PIC X(01).
-           05  HV-ACCT-CURR-BAL                 PIC S9(10)V99 COMP-3.
-           05  HV-ACCT-CREDIT-LMT               PIC S9(10)V99 COMP-3.
-           05  HV-ACCT-CASH-LMT                 PIC S9(10)V99 COMP-3.
-           05  HV-ACCT-OPEN-DT                  PIC X(10).
-           05  HV-ACCT-EXPIRY-DT                PIC X(10).
-           05  HV-ACCT-REISSUE-DT               PIC X(10).
-           05  HV-ACCT-CYC-CREDIT               PIC S9(10)V99 COMP-3.
-           05  HV-ACCT-CYC-DEBIT                PIC S9(10)V99 COMP-3.
-           05  HV-ACCT-ZIP                      PIC X(10).
-           05  HV-ACCT-GROUP-ID                 PIC X(10).
-       01  HV-CUSTOMER-RECORD.
-           05  HV-CUST-ID                       PIC S9(09) COMP.
-           05  HV-CUST-FNAME                    PIC X(25).
-           05  HV-CUST-MNAME                    PIC X(25).
-           05  HV-CUST-LNAME                    PIC X(25).
-           05  HV-CUST-ADDR1                    PIC X(50).
-           05  HV-CUST-ADDR2                    PIC X(50).
-           05  HV-CUST-ADDR3                    PIC X(50).
-           05  HV-CUST-STATE                    PIC X(02).
-           05  HV-CUST-COUNTRY                  PIC X(03).
-           05  HV-CUST-ZIP                      PIC X(10).
-           05  HV-CUST-PHONE1                   PIC X(15).
-           05  HV-CUST-PHONE2                   PIC X(15).
-           05  HV-CUST-SSN                      PIC S9(09) COMP.
-           05  HV-CUST-GOVT-ID                  PIC X(20).
-           05  HV-CUST-DOB                      PIC X(10).
-           05  HV-CUST-EFT-ID                   PIC X(10).
-           05  HV-CUST-PRI-HOLDER               PIC X(01).
-           05  HV-CUST-FICO                     PIC S9(03) COMP.
-       EXEC SQL END DECLARE SECTION END-EXEC.
 
       ******************************************************************
       *Other common working storage Variables
@@ -289,18 +237,50 @@
       *Signed on user data
        COPY CSUSR01Y.
 
-      *ACCOUNT RECORD LAYOUT
-       COPY CVACT01Y.
-
-
-      *CUSTOMER RECORD LAYOUT
-       COPY CVACT02Y.
-
-      *CARD XREF LAYOUT
-       COPY CVACT03Y.
-
-      *CUSTOMER LAYOUT
-       COPY CVCUS01Y.
+      * RPC Communication Area - MUST MATCH COACTVWA EXACTLY
+       01 WS-RPC-COMMAREA.
+          05 LK-INPUT-PARMS.
+             10 LK-IN-ACCT-ID             PIC X(11).
+          05 LK-OUTPUT-STATUS.
+             10 LK-OUT-RETURN-CODE        PIC 9(02).
+                88 RC-SUCCESS             VALUE 00.
+                88 RC-NOT-FOUND           VALUE 01.
+                88 RC-INPUT-ERROR         VALUE 03.
+                88 RC-DATABASE-ERROR      VALUE 99.
+             10 LK-OUT-MESSAGE            PIC X(80).
+          05 LK-OUTPUT-DATA.
+             10 LK-OUT-ACCT-DATA.
+                15 LK-OUT-ACCT-ID              PIC X(11).
+                15 LK-OUT-ACCT-ACTIVE-STATUS   PIC X(01).
+                15 LK-OUT-ACCT-CREDIT-LIMIT    PIC S9(10)V99.
+                15 LK-OUT-ACCT-CASH-LIMIT      PIC S9(10)V99.
+                15 LK-OUT-ACCT-CURR-BAL        PIC S9(10)V99.
+                15 LK-OUT-ACCT-CURR-CYC-CREDIT PIC S9(10)V99.
+                15 LK-OUT-ACCT-CURR-CYC-DEBIT  PIC S9(10)V99.
+                15 LK-OUT-ACCT-OPEN-DATE       PIC X(10).
+                15 LK-OUT-ACCT-EXPIRATION-DATE PIC X(10).
+                15 LK-OUT-ACCT-REISSUE-DATE    PIC X(10).
+                15 LK-OUT-ACCT-GROUP-ID        PIC X(10).
+                15 LK-OUT-ACCT-CARD-NUM        PIC X(16).
+             10 LK-OUT-CUST-DATA.
+                15 LK-OUT-CUST-ID              PIC X(9).
+                15 LK-OUT-CUST-FIRST-NAME      PIC X(25).
+                15 LK-OUT-CUST-MIDDLE-NAME     PIC X(25).
+                15 LK-OUT-CUST-LAST-NAME       PIC X(25).
+                15 LK-OUT-CUST-SSN             PIC X(9).
+                15 LK-OUT-CUST-DOB             PIC X(10).
+                15 LK-OUT-CUST-ADDR-LINE-1     PIC X(50).
+                15 LK-OUT-CUST-ADDR-LINE-2     PIC X(50).
+                15 LK-OUT-CUST-ADDR-LINE-3     PIC X(50).
+                15 LK-OUT-CUST-ADDR-STATE-CD   PIC X(2).
+                15 LK-OUT-CUST-ADDR-COUNTRY-CD PIC X(3).
+                15 LK-OUT-CUST-ADDR-ZIP        PIC X(10).
+                15 LK-OUT-CUST-PHONE-NUM-1     PIC X(15).
+                15 LK-OUT-CUST-PHONE-NUM-2     PIC X(15).
+                15 LK-OUT-CUST-GOVT-ISSUED-ID  PIC X(20).
+                15 LK-OUT-CUST-EFT-ACCOUNT-ID  PIC  X(10).
+                15 LK-OUT-CUST-PRI-HOLDER-IND  PIC X(1).
+                15 LK-OUT-CUST-FICO-SCORE      PIC 9(3).
 
        LINKAGE SECTION.
        01  DFHCOMMAREA.
@@ -309,15 +289,14 @@
 
        PROCEDURE DIVISION.
        0000-MAIN.
-           DISPLAY 'CRISS'
+
            EXEC CICS HANDLE ABEND
                      LABEL(ABEND-ROUTINE)
            END-EXEC
-           DISPLAY 'CRISS0'
+
            INITIALIZE CC-WORK-AREA
                       WS-MISC-STORAGE
                       WS-COMMAREA
-           DISPLAY 'CRISS1'
       *****************************************************************
       * Store our context
       *****************************************************************
@@ -332,19 +311,14 @@
            IF EIBCALEN IS EQUAL TO 0
                OR (CDEMO-FROM-PROGRAM = LIT-MENUPGM
                AND NOT CDEMO-PGM-REENTER)
-               DISPLAY 'ALAIN0'
               INITIALIZE CARDDEMO-COMMAREA
                          WS-THIS-PROGCOMMAREA
-                         DISPLAY 'ALAIN1'
            ELSE
-           DISPLAY 'ALAIN2'
               MOVE DFHCOMMAREA (1:LENGTH OF CARDDEMO-COMMAREA)  TO
                                 CARDDEMO-COMMAREA
               MOVE DFHCOMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:
                                LENGTH OF WS-THIS-PROGCOMMAREA ) TO
                                 WS-THIS-PROGCOMMAREA
-                                DISPLAY 'ALAIN3'
-
            END-IF
 
       *****************************************************************
@@ -406,7 +380,6 @@
                              COMMAREA(CARDDEMO-COMMAREA)
                    END-EXEC
               WHEN CDEMO-PGM-ENTER
-              DISPLAY 'ALAIN5'
       ******************************************************************
       *            COMING FROM SOME OTHER CONTEXT
       *            SELECTION CRITERIA TO BE GATHERED
@@ -415,7 +388,6 @@
                            1000-SEND-MAP-EXIT
                    GO TO COMMON-RETURN
               WHEN CDEMO-PGM-REENTER
-              DISPLAY 'ALAIN7'
                    PERFORM 2000-PROCESS-INPUTS
                       THRU 2000-PROCESS-INPUTS-EXIT
                    IF INPUT-ERROR
@@ -461,6 +433,9 @@
                 COMMAREA (WS-COMMAREA)
                 LENGTH(LENGTH OF WS-COMMAREA)
            END-EXEC
+           .
+       0000-MAIN-EXIT.
+           EXIT
            .
        0000-MAIN-EXIT.
            EXIT
@@ -524,55 +499,55 @@
 
               IF FOUND-ACCT-IN-MASTER
               OR FOUND-CUST-IN-MASTER
-                 MOVE ACCT-ACTIVE-STATUS  TO ACSTTUSO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-ACTIVE-STATUS  TO ACSTTUSO OF CACTVWAO
 
-                 MOVE ACCT-CURR-BAL       TO ACURBALO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-CURR-BAL       TO ACURBALO OF CACTVWAO
 
-                 MOVE ACCT-CREDIT-LIMIT   TO ACRDLIMO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-CREDIT-LIMIT   TO ACRDLIMO OF CACTVWAO
 
-                 MOVE ACCT-CASH-CREDIT-LIMIT
+                 MOVE LK-OUT-ACCT-CASH-LIMIT
                                           TO ACSHLIMO OF CACTVWAO
 
-                 MOVE ACCT-CURR-CYC-CREDIT
+                 MOVE LK-OUT-ACCT-CURR-CYC-CREDIT
                                           TO ACRCYCRO OF CACTVWAO
 
-                 MOVE ACCT-CURR-CYC-DEBIT TO ACRCYDBO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-CURR-CYC-DEBIT TO ACRCYDBO OF CACTVWAO
 
-                 MOVE ACCT-OPEN-DATE      TO ADTOPENO OF CACTVWAO
-                 MOVE ACCT-EXPIRAION-DATE TO AEXPDTO  OF CACTVWAO
-                 MOVE ACCT-REISSUE-DATE   TO AREISDTO OF CACTVWAO
-                 MOVE ACCT-GROUP-ID       TO AADDGRPO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-OPEN-DATE      TO ADTOPENO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-EXPIRATION-DATE TO AEXPDTO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-REISSUE-DATE   TO AREISDTO OF CACTVWAO
+                 MOVE LK-OUT-ACCT-GROUP-ID       TO AADDGRPO OF CACTVWAO
               END-IF
 
               IF FOUND-CUST-IN-MASTER
-                MOVE CUST-ID              TO ACSTNUMO OF CACTVWAO
+                MOVE LK-OUT-CUST-ID              TO ACSTNUMO OF CACTVWAO
       *         MOVE CUST-SSN             TO ACSTSSNO OF CACTVWAO
                 STRING
-                    CUST-SSN(1:3)
+                    LK-OUT-CUST-SSN(1:3)
                     '-'
-                    CUST-SSN(4:2)
+                    LK-OUT-CUST-SSN(4:2)
                     '-'
-                    CUST-SSN(6:4)
+                    LK-OUT-CUST-SSN(6:4)
                     DELIMITED BY SIZE
                     INTO ACSTSSNO OF CACTVWAO
                 END-STRING
-                MOVE CUST-FICO-CREDIT-SCORE
+                MOVE LK-OUT-CUST-FICO-SCORE
                                           TO ACSTFCOO OF CACTVWAO
-                MOVE CUST-DOB-YYYY-MM-DD  TO ACSTDOBO OF CACTVWAO
-                MOVE CUST-FIRST-NAME      TO ACSFNAMO OF CACTVWAO
-                MOVE CUST-MIDDLE-NAME     TO ACSMNAMO OF CACTVWAO
-                MOVE CUST-LAST-NAME       TO ACSLNAMO OF CACTVWAO
-                MOVE CUST-ADDR-LINE-1     TO ACSADL1O OF CACTVWAO
-                MOVE CUST-ADDR-LINE-2     TO ACSADL2O OF CACTVWAO
-                MOVE CUST-ADDR-LINE-3     TO ACSCITYO OF CACTVWAO
-                MOVE CUST-ADDR-STATE-CD   TO ACSSTTEO OF CACTVWAO
-                MOVE CUST-ADDR-ZIP        TO ACSZIPCO OF CACTVWAO
-                MOVE CUST-ADDR-COUNTRY-CD TO ACSCTRYO OF CACTVWAO
-                MOVE CUST-PHONE-NUM-1     TO ACSPHN1O OF CACTVWAO
-                MOVE CUST-PHONE-NUM-2     TO ACSPHN2O OF CACTVWAO
-                MOVE CUST-GOVT-ISSUED-ID  TO ACSGOVTO OF CACTVWAO
-                MOVE CUST-EFT-ACCOUNT-ID  TO ACSEFTCO OF CACTVWAO
-                MOVE CUST-PRI-CARD-HOLDER-IND
+                MOVE LK-OUT-CUST-DOB  TO ACSTDOBO OF CACTVWAO
+                MOVE LK-OUT-CUST-FIRST-NAME      TO ACSFNAMO OF CACTVWAO
+                MOVE LK-OUT-CUST-MIDDLE-NAME     TO ACSMNAMO OF CACTVWAO
+                MOVE LK-OUT-CUST-LAST-NAME       TO ACSLNAMO OF CACTVWAO
+                MOVE LK-OUT-CUST-ADDR-LINE-1     TO ACSADL1O OF CACTVWAO
+                MOVE LK-OUT-CUST-ADDR-LINE-2     TO ACSADL2O OF CACTVWAO
+                MOVE LK-OUT-CUST-ADDR-LINE-3     TO ACSCITYO OF CACTVWAO
+                MOVE LK-OUT-CUST-ADDR-STATE-CD   TO ACSSTTEO OF CACTVWAO
+                MOVE LK-OUT-CUST-ADDR-ZIP        TO ACSZIPCO OF CACTVWAO
+                MOVE LK-OUT-CUST-ADDR-COUNTRY-CD TO ACSCTRYO OF CACTVWAO
+                MOVE LK-OUT-CUST-PHONE-NUM-1     TO ACSPHN1O OF CACTVWAO
+                MOVE LK-OUT-CUST-PHONE-NUM-2     TO ACSPHN2O OF CACTVWAO
+                MOVE LK-OUT-CUST-GOVT-ISSUED-ID  TO ACSGOVTO OF CACTVWAO
+                MOVE LK-OUT-CUST-EFT-ACCOUNT-ID  TO ACSEFTCO OF CACTVWAO
+                MOVE LK-OUT-CUST-PRI-HOLDER-IND
                                           TO ACSPFLGO OF CACTVWAO
               END-IF
 
@@ -744,232 +719,64 @@
 
            MOVE CDEMO-ACCT-ID TO WS-CARD-RID-ACCT-ID
 
-           PERFORM 9200-GETCARDXREF-BYACCT
-              THRU 9200-GETCARDXREF-BYACCT-EXIT
+           PERFORM 9100-READ-ACCT-VIA-RPC
+              THRU 9100-READ-ACCT-VIA-RPC-EXIT
 
-      *    IF DID-NOT-FIND-ACCT-IN-CARDXREF
-           IF FLG-ACCTFILTER-NOT-OK
-              GO TO 9000-READ-ACCT-EXIT
+      *    Check if we got the data successfully
+           IF RC-SUCCESS
+              SET FOUND-ACCT-IN-MASTER TO TRUE
+              SET FOUND-CUST-IN-MASTER TO TRUE
+              SET WS-INFORM-OUTPUT     TO TRUE
            END-IF
-
-           PERFORM 9300-GETACCTDATA-BYACCT
-              THRU 9300-GETACCTDATA-BYACCT-EXIT
-
-           IF DID-NOT-FIND-ACCT-IN-ACCTDAT
-              GO TO 9000-READ-ACCT-EXIT
-           END-IF
-
-           MOVE CDEMO-CUST-ID TO WS-CARD-RID-CUST-ID
-
-           PERFORM 9400-GETCUSTDATA-BYCUST
-              THRU 9400-GETCUSTDATA-BYCUST-EXIT
-
-           IF DID-NOT-FIND-CUST-IN-CUSTDAT
-              GO TO 9000-READ-ACCT-EXIT
-           END-IF
-
 
            .
 
        9000-READ-ACCT-EXIT.
            EXIT
            .
-       9200-GETCARDXREF-BYACCT.
 
-      *    Read the Card file using DB2 SQL
-      *
-           MOVE WS-CARD-RID-ACCT-ID TO HV-ACCOUNT-ID
+       9100-READ-ACCT-VIA-RPC.
+           INITIALIZE WS-RPC-COMMAREA
 
-           EXEC SQL
-                SELECT CARD_NUM
-                INTO :HV-CARD-NUMBER
-                FROM CARDDAT
-                WHERE CARD_ACCT_ID = :HV-ACCOUNT-ID
-           END-EXEC
+           MOVE CDEMO-ACCT-ID TO LK-IN-ACCT-ID
 
-           EVALUATE SQLCODE
-               WHEN 0
-                  MOVE HV-CARD-NUMBER TO CDEMO-CARD-NUM
-      *           Customer ID will be obtained from account record
-               WHEN 100
-                  SET INPUT-ERROR                 TO TRUE
-                  SET FLG-ACCTFILTER-NOT-OK       TO TRUE
-                  IF WS-RETURN-MSG-OFF
-                    MOVE SQLCODE TO HV-SQLCODE-DISPLAY
-                    STRING
-                    'Account:'
-                     WS-CARD-RID-ACCT-ID-X
-                    ' not found in'
-                    ' Card file.  SQLCODE:'
-                    HV-SQLCODE-DISPLAY
-                    DELIMITED BY SIZE
-                    INTO WS-RETURN-MSG
-                    END-STRING
-                  END-IF
+           EXEC CICS LINK
+                PROGRAM(LIT-RPC-PROGRAM)
+                COMMAREA(WS-RPC-COMMAREA)
+                LENGTH(LENGTH OF WS-RPC-COMMAREA)
+                RESP(WS-RESP-CD)
+                RESP2(WS-REAS-CD)
+           END-EXEC.
+
+           MOVE WS-RESP-CD    TO WS-RESP-DISP.
+           MOVE WS-REAS-CD    TO WS-REAS-DISP.
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   IF RC-SUCCESS
+                       CONTINUE
+                   ELSE
+                       SET INPUT-ERROR TO TRUE
+                       SET FLG-ACCTFILTER-NOT-OK TO TRUE
+                       MOVE LK-OUT-MESSAGE TO WS-RETURN-MSG
+                   END-IF
+               WHEN DFHRESP(PGMIDERR)
+                   SET INPUT-ERROR TO TRUE
+                   SET FLG-ACCTFILTER-NOT-OK TO TRUE
+                   MOVE 'COACTVWA program not found' TO WS-RETURN-MSG
                WHEN OTHER
-                  SET INPUT-ERROR                 TO TRUE
-                  SET FLG-ACCTFILTER-NOT-OK                TO TRUE
-                  MOVE SQLCODE TO HV-SQLCODE-DISPLAY
-                  STRING
-                  'Error reading CARDDAT table. SQLCODE:'
-                  HV-SQLCODE-DISPLAY
-                  DELIMITED BY SIZE
-                  INTO WS-RETURN-MSG
-                  END-STRING
+                   SET INPUT-ERROR TO TRUE
+                   SET FLG-ACCTFILTER-NOT-OK TO TRUE
+                   STRING 'Error calling COACTVWA. RESP='
+                          WS-RESP-DISP
+                          ' RESP2='
+                          WS-REAS-DISP
+                     DELIMITED BY SIZE
+                     INTO WS-RETURN-MSG
+                   END-STRING
            END-EVALUATE
            .
-       9200-GETCARDXREF-BYACCT-EXIT.
-           EXIT
-           .
-       9300-GETACCTDATA-BYACCT.
-
-           MOVE WS-CARD-RID-ACCT-ID TO HV-ACCOUNT-ID
-
-           EXEC SQL
-                SELECT ACCT_ID, ACCT_ACTIVE_STATUS, ACCT_CURR_BAL,
-                       ACCT_CREDIT_LIMIT, ACCT_CASH_CREDIT_LIMIT,
-                       ACCT_OPEN_DATE, ACCT_EXPIRAION_DATE,
-                       ACCT_REISSUE_DATE, ACCT_CURR_CYC_CREDIT,
-                       ACCT_CURR_CYC_DEBIT, ACCT_ADDR_ZIP,
-                       ACCT_GROUP_ID
-                INTO :HV-ACCT-ID, :HV-ACCT-STATUS, :HV-ACCT-CURR-BAL,
-                     :HV-ACCT-CREDIT-LMT, :HV-ACCT-CASH-LMT,
-                     :HV-ACCT-OPEN-DT, :HV-ACCT-EXPIRY-DT,
-                     :HV-ACCT-REISSUE-DT, :HV-ACCT-CYC-CREDIT,
-                     :HV-ACCT-CYC-DEBIT, :HV-ACCT-ZIP,
-                     :HV-ACCT-GROUP-ID
-                FROM ACCTDAT
-                WHERE ACCT_ID = :HV-ACCOUNT-ID
-           END-EXEC
-
-           EVALUATE SQLCODE
-               WHEN 0
-                  SET FOUND-ACCT-IN-MASTER        TO TRUE
-                  MOVE HV-ACCT-ID                 TO ACCT-ID
-                  MOVE HV-ACCT-STATUS             TO ACCT-ACTIVE-STATUS
-                  MOVE HV-ACCT-CURR-BAL           TO ACCT-CURR-BAL
-                  MOVE HV-ACCT-CREDIT-LMT         TO ACCT-CREDIT-LIMIT
-                  MOVE HV-ACCT-CASH-LMT
-                    TO ACCT-CASH-CREDIT-LIMIT
-                  MOVE HV-ACCT-OPEN-DT            TO ACCT-OPEN-DATE
-                  MOVE HV-ACCT-EXPIRY-DT          TO ACCT-EXPIRAION-DATE
-                  MOVE HV-ACCT-REISSUE-DT         TO ACCT-REISSUE-DATE
-                  MOVE HV-ACCT-CYC-CREDIT
-                    TO ACCT-CURR-CYC-CREDIT
-                  MOVE HV-ACCT-CYC-DEBIT          TO ACCT-CURR-CYC-DEBIT
-                  MOVE HV-ACCT-ZIP                TO ACCT-ADDR-ZIP
-                  MOVE HV-ACCT-GROUP-ID           TO ACCT-GROUP-ID
-               WHEN 100
-                  SET INPUT-ERROR                 TO TRUE
-                  SET FLG-ACCTFILTER-NOT-OK       TO TRUE
-                  IF WS-RETURN-MSG-OFF
-                    MOVE SQLCODE TO HV-SQLCODE-DISPLAY
-                    STRING
-                    'Account:'
-                     WS-CARD-RID-ACCT-ID-X
-                    ' not found in'
-                    ' Acct Master file. SQLCODE:'
-                    HV-SQLCODE-DISPLAY
-                    DELIMITED BY SIZE
-                    INTO WS-RETURN-MSG
-                    END-STRING
-                  END-IF
-               WHEN OTHER
-                  SET INPUT-ERROR                 TO TRUE
-                  SET FLG-ACCTFILTER-NOT-OK                TO TRUE
-                  MOVE SQLCODE TO HV-SQLCODE-DISPLAY
-                  STRING
-                  'Error reading ACCTDAT table. SQLCODE:'
-                  HV-SQLCODE-DISPLAY
-                  DELIMITED BY SIZE
-                  INTO WS-RETURN-MSG
-                  END-STRING
-           END-EVALUATE
-           .
-       9300-GETACCTDATA-BYACCT-EXIT.
-           EXIT
-           .
-
-       9400-GETCUSTDATA-BYCUST.
-      *    For now, we'll assume customer ID is derived from account ID
-      *    In a real implementation, this would come from a proper
-      *    cross-reference table or account-customer relationship
-           MOVE WS-CARD-RID-ACCT-ID TO HV-CUSTOMER-ID
-
-           EXEC SQL
-                SELECT CUST_ID, CUST_FIRST_NAME, CUST_MIDDLE_NAME,
-                       CUST_LAST_NAME, CUST_ADDR_LINE_1,
-                       CUST_ADDR_LINE_2, CUST_ADDR_LINE_3,
-                       CUST_ADDR_STATE_CD, CUST_ADDR_COUNTRY_CD,
-                       CUST_ADDR_ZIP, CUST_PHONE_NUM_1,
-                       CUST_PHONE_NUM_2, CUST_SSN,
-                       CUST_GOVT_ISSUED_ID, CUST_DOB_YYYY_MM_DD,
-                       CUST_EFT_ACCOUNT_ID, CUST_PRI_CARD_HOLDER_IND,
-                       CUST_FICO_CREDIT_SCORE
-                INTO :HV-CUST-ID, :HV-CUST-FNAME, :HV-CUST-MNAME,
-                     :HV-CUST-LNAME, :HV-CUST-ADDR1,
-                     :HV-CUST-ADDR2, :HV-CUST-ADDR3,
-                     :HV-CUST-STATE, :HV-CUST-COUNTRY,
-                     :HV-CUST-ZIP, :HV-CUST-PHONE1,
-                     :HV-CUST-PHONE2, :HV-CUST-SSN,
-                     :HV-CUST-GOVT-ID, :HV-CUST-DOB,
-                     :HV-CUST-EFT-ID, :HV-CUST-PRI-HOLDER,
-                     :HV-CUST-FICO
-                FROM CUSTDAT
-                WHERE CUST_ID = :HV-CUSTOMER-ID
-           END-EXEC
-
-           EVALUATE SQLCODE
-               WHEN 0
-                  SET FOUND-CUST-IN-MASTER        TO TRUE
-                  MOVE HV-CUST-ID                 TO CUST-ID
-                  MOVE HV-CUST-FNAME              TO CUST-FIRST-NAME
-                  MOVE HV-CUST-MNAME              TO CUST-MIDDLE-NAME
-                  MOVE HV-CUST-LNAME              TO CUST-LAST-NAME
-                  MOVE HV-CUST-ADDR1              TO CUST-ADDR-LINE-1
-                  MOVE HV-CUST-ADDR2              TO CUST-ADDR-LINE-2
-                  MOVE HV-CUST-ADDR3              TO CUST-ADDR-LINE-3
-                  MOVE HV-CUST-STATE              TO CUST-ADDR-STATE-CD
-                  MOVE HV-CUST-COUNTRY
-                    TO CUST-ADDR-COUNTRY-CD
-                  MOVE HV-CUST-ZIP                TO CUST-ADDR-ZIP
-                  MOVE HV-CUST-PHONE1             TO CUST-PHONE-NUM-1
-                  MOVE HV-CUST-PHONE2             TO CUST-PHONE-NUM-2
-                  MOVE HV-CUST-SSN                TO CUST-SSN
-                  MOVE HV-CUST-GOVT-ID            TO CUST-GOVT-ISSUED-ID
-                  MOVE HV-CUST-DOB                TO CUST-DOB-YYYY-MM-DD
-                  MOVE HV-CUST-EFT-ID             TO CUST-EFT-ACCOUNT-ID
-                  MOVE HV-CUST-PRI-HOLDER
-                    TO CUST-PRI-CARD-HOLDER-IND
-                  MOVE HV-CUST-FICO
-                    TO CUST-FICO-CREDIT-SCORE
-                  MOVE HV-CUST-ID                 TO CDEMO-CUST-ID
-               WHEN 100
-                  SET INPUT-ERROR                 TO TRUE
-                  SET FLG-CUSTFILTER-NOT-OK       TO TRUE
-                  IF WS-RETURN-MSG-OFF
-                    MOVE SQLCODE TO HV-SQLCODE-DISPLAY
-                    STRING
-                    'CustId not found'
-                    ' in customer master. SQLCODE: '
-                    HV-SQLCODE-DISPLAY
-                    DELIMITED BY SIZE
-                    INTO WS-RETURN-MSG
-                    END-STRING
-                  END-IF
-               WHEN OTHER
-                  SET INPUT-ERROR                 TO TRUE
-                  SET FLG-CUSTFILTER-NOT-OK                TO TRUE
-                  MOVE SQLCODE TO HV-SQLCODE-DISPLAY
-                  STRING
-                  'Error reading CUSTDAT table. SQLCODE:'
-                  HV-SQLCODE-DISPLAY
-                  DELIMITED BY SIZE
-                  INTO WS-RETURN-MSG
-                  END-STRING
-           END-EVALUATE
-           .
-       9400-GETCUSTDATA-BYCUST-EXIT.
+       9100-READ-ACCT-VIA-RPC-EXIT.
            EXIT
            .
 
@@ -990,7 +797,25 @@
        SEND-PLAIN-TEXT-EXIT.
            EXIT
            .
+      *****************************************************************
+      * Display Long text and exit                                    *
+      * This is primarily for debugging and should not be used in     *
+      * regular course                                                *
+      *****************************************************************
+       SEND-LONG-TEXT.
+           EXEC CICS SEND TEXT
+                     FROM(WS-LONG-MSG)
+                     LENGTH(LENGTH OF WS-LONG-MSG)
+                     ERASE
+                     FREEKB
+           END-EXEC
 
+           EXEC CICS RETURN
+           END-EXEC
+           .
+       SEND-LONG-TEXT-EXIT.
+           EXIT
+           .
       *****************************************************************
       *Common code to store PFKey
       ******************************************************************

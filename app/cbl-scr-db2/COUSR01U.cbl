@@ -1,5 +1,5 @@
       ************************************************************
-      * Program     : COUSR01S.CBL
+      * Program     : COUSR01U.CBL
       * Application : CardDemo
       * Type        : CICS COBOL Screen Program
       * Function    : Add a new Regular/Admin user - Screen Interface
@@ -21,10 +21,10 @@
       * language governing permissions and limitations under the License
       ******************************************************************
       * Modification History
-      * 2025-06-01 - Created screen program to call RPC program COUSR01L
+      * 2025-06-01 - Created screen program to call RPC program COUSR01A
       ******************************************************************
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. COUSR01S.
+       PROGRAM-ID. COUSR01U.
        AUTHOR.     AWS.
 
        ENVIRONMENT DIVISION.
@@ -37,8 +37,8 @@
        WORKING-STORAGE SECTION.
 
        01 WS-VARIABLES.
-         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR01S'.
-         05 WS-TRANID                  PIC X(04) VALUE 'ALS1'.
+         05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR01U'.
+         05 WS-TRANID                  PIC X(04) VALUE 'AAS1'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                         VALUE 'Y'.
@@ -94,7 +94,7 @@
                           ERRMSGO OF COUSR1AO
 
            IF EIBCALEN = 0
-               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
@@ -109,7 +109,7 @@
                        WHEN DFHENTER
                            PERFORM PROCESS-ENTER-KEY
                        WHEN DFHPF3
-                           MOVE 'COADM01C' TO CDEMO-TO-PROGRAM
+                           MOVE 'COADM01U' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-PREV-SCREEN
                        WHEN DFHPF4
                            PERFORM CLEAR-CURRENT-SCREEN
@@ -152,7 +152,7 @@
 
       *    Call the RPC program
            EXEC CICS LINK
-                PROGRAM('COUSR01L')
+                PROGRAM('COUSR01A')
                 COMMAREA(WS-RPC-COMMAREA)
                 LENGTH(LENGTH OF WS-RPC-COMMAREA)
                 RESP(WS-RESP-CD)
@@ -238,7 +238,7 @@
        RETURN-TO-PREV-SCREEN.
 
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES
-               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
            END-IF
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
