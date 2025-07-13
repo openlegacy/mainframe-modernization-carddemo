@@ -24,22 +24,22 @@
            10 FILLER                        PIC 9(02) VALUE 1.
            10 FILLER                        PIC X(35) VALUE
                'User List (Security)               '.
-           10 FILLER                        PIC X(08) VALUE 'COUSR00D'.
+           10 FILLER                        PIC X(08) VALUE 'COUSR00S'.
 
            10 FILLER                        PIC 9(02) VALUE 2.
            10 FILLER                        PIC X(35) VALUE
                'User Add (Security)                '.
-           10 FILLER                        PIC X(08) VALUE 'COUSR01D'.
+           10 FILLER                        PIC X(08) VALUE 'COUSR01S'.
 
            10 FILLER                        PIC 9(02) VALUE 3.
            10 FILLER                        PIC X(35) VALUE
                'User Update (Security)             '.
-           10 FILLER                        PIC X(08) VALUE 'COUSR02D'.
+           10 FILLER                        PIC X(08) VALUE 'COUSR02S'.
 
            10 FILLER                        PIC 9(02) VALUE 4.
            10 FILLER                        PIC X(35) VALUE
                'User Delete (Security)             '.
-           10 FILLER                        PIC X(08) VALUE 'COUSR03D'.
+           10 FILLER                        PIC X(08) VALUE 'COUSR03S'.
 
          05 CDEMO-ADMIN-OPTIONS REDEFINES CDEMO-ADMIN-OPTIONS-DATA.
            10 CDEMO-ADMIN-OPT OCCURS 9 TIMES.
