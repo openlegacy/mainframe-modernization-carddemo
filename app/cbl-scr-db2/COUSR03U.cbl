@@ -13,7 +13,7 @@
 
        01 WS-VARIABLES.
          05 WS-PGMNAME                 PIC X(08) VALUE 'COUSR03U'.
-         05 WS-TRANID                  PIC X(04) VALUE 'ALS3'.
+         05 WS-TRANID                  PIC X(04) VALUE 'AAS3'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
          05 WS-RPC-PROGRAM             PIC X(08) VALUE 'COUSR03A'.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.

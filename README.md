@@ -1,324 +1,242 @@
-## CardDemo -- Mainframe CardDemo Application
-
-- [CardDemo -- Mainframe CardDemo Application](#carddemo----mainframe-card-demo-application)
-- [Description](#description)
-- [Technologies used](#technologies-used)
-- [Installation on the mainframe](#installation-on-the-mainframe)
-- [Application Details](#application-details)
-  - [User Functions](#user-functions)
-  - [Admin Functions](#admin-functions)
-  - [Application Inventory](#application-inventory)
-    - [**Online**](#online)
-    - [**Batch**](#batch)
-  - [Application Screens](#application-screens)
-    - [**Signon Screen**](#signon-screen)
-    - [**Main Menu**](#main-menu)
-    - [**Admin Menu**](#admin-menu)
-- [Support](#support)
-- [Roadmap](#roadmap)
-- [Contributing](#contributing)
-- [License](#license)
-- [Project status](#project-status)
-
-<br/>
-
-## Description
-CardDemo is a Mainframe application designed and developed to test and showcase AWS and partner technology for mainframe migration and modernization use-cases such as discovery, migration, modernization, performance test, augmentation, service enablement, service extraction, test creation, test harness, etc.
-
-Note that the intent of this application is to provide mainframe coding scenarios to excercise analysis, transformation and migration tooling. So, the coding style is not uniform across the application
-
-<br/>
-
-## Technologies used
-1. COBOL
-2. CICS
-3. VSAM
-4. JCL
-5. RACF
-
-<br/>
-
-## Installation on the mainframe 
-
-To install this repository on the mainframe please follow the following steps
-
-1. Clone this repository to your local development environment
-
-2. Create datasets on the mainframe  hold the code
-   * It is recommended to group them under a High Level Qualifier (HLQ)for all your datasets. 
-   * Upload the following application source folders from the main branch of git repository on to your mainframe
-      using $INDFILE or your preferred upload tool.
-   * If you have used AWS.M2 as your HLQ, you should end up with the below code structure on the mainframe
-   
-      | HLQ    | Name          | Format | Length |
-      | :----- | :------------ | :----- | -----: |
-      | AWS.M2 | CARDDEMO.JCL  | FB     |     80 |
-      | AWS.M2 | CARDDEMO.PROC | FB     |     80 |
-      | AWS.M2 | CARDDEMO.CBL  | FB     |     80 |
-      | AWS.M2 | CARDDEMO.CPY  | FB     |     80 |
-      | AWS.M2 | CARDDEMO.BMS  | FB     |     80 |
-      
-3. Use data for testing using either of the below approaches
-
-   ** Use the supplied sample data**
-   
-      * Upload the sample data provided in the main/-/data/EBCDIC/ folder to the mainframe. Ensure that you use transfer mode binary
-
-         | Dataset name                      | Name                                             | Copybook (Layout) | Format | Length | Name of equivalent ascii file |
-         | :---------------------------------| :----------------------------------------------- | :-----            | :----- | -----: | :---------------------------- |
-         | AWS.M2.CARDDEMO.USRSEC.PS         | User Security file                               | CSUSR01Y          | FB     |     80 | See DEFUSR01.jcl (inline)     |
-         | AWS.M2.CARDDEMO.ACCTDATA.PS       | Account Data                                     | CVACT01Y          | FB     |    300 | acctdata.txt                  |
-         | AWS.M2.CARDDEMO.CARDDATA.PS       | Card Data                                        | CVACT02Y          | FB     |    150 | carddata.txt                  |
-         | AWS.M2.CARDDEMO.CUSTDATA.PS       | Customer Data                                    | CVCUS01Y          | FB     |    500 | custdata.txt                  |
-         | AWS.M2.CARDDEMO.CARDXREF.PS       | Customer Account Card Cross reference            | CVACT03Y          | FB     |     50 | cardxref.txt                  |
-         | AWS.M2.CARDDEMO.DALYTRAN.PS.INIT  | Transaction database initialization record       | CVTRA06Y          | FB     |    350 | 1 record (low-values ending with 00000100)|
-         | AWS.M2.CARDDEMO.DALYTRAN.PS       | Transaction data which has to go through posting | CVTRA06Y          | FB     |    350 | dailytran.txt                 |
-         | AWS.M2.CARDDEMO.TRANSACT.VSAM.KSDS| Transaction data entered online                  | CVTRA05Y          | FB     |    350 | not applicable                |
-         | AWS.M2.CARDDEMO.DISCGRP.PS        | Disclosure Groups                                | CVTRA02Y          | FB     |     50 | discgrp.txt                   |
-         | AWS.M2.CARDDEMO.TRANCATG.PS       | Transaction Category Types                       | CVTRA04Y          | FB     |     60 | trancatg.txt                  |
-         | AWS.M2.CARDDEMO.TRANTYPE.PS       | Transaction Types                                | CVTRA03Y          | FB     |     60 | trantype.txt                  |
-         | AWS.M2.CARDDEMO.TCATBALF.PS       | Transaction Category Balance                     | CVTRA01Y          | FB     |     50 | tcatbal.txt                   |
-
-      * Execute the following JCLs in order
-
-         | Jobname  | What it does                                        |
-         | :------- | :-------------------------------------------------- |
-         | DUSRSECJ | Sets up user security vsam file                     |
-         | CLOSEFIL | Closes files opened by CICS                         |
-         | ACCTFILE | Loads Account database using sample data            |
-         | CARDFILE | Loads Card database with credit card sample data    |
-         | CUSTFILE | Creates customer database                           |
-         | XREFFILE | Loads Customer Card account cross reference to VSAM |
-         | TRANFILE | Copies initial Trasaction file  to VSAM             |
-         | DISCGRP  | Copies initial Disclosure Group file  to VSAM       |
-         | TCATBALF | Copies initial TCATBALF file  to VSAM               |
-         | TRANCATG | Copies initial transaction category file  to VSAM   |
-         | TRANTYPE | Copies initial transaction type file                |
-         | OPENFIL  | Makes files available to CICS                       |
-         | DEFGDGB  | Defines GDG Base                                    |
-
-
-4. Compile the Programs. 
-   
-   You should use the compile process followed by your mainframe shopfloor
-   
-   We have however provided some sample JCLs in the samples folder in git to help you craft the JCL   
-
-5. Create resources in the CARDDEMO group in CICS
-   
-   You have 2 options
-   
-   Be sure to edit the HLQs in the below documents as required before you do the definition
-   
-   * (Preferred) . Use the DFHCSDUP JCL that the resources required by the application
-
-      The resources required are in the CSD file provided in the CSD folder
-       
-      * Group CARDDEMO
-      * Mapsets
-      * Transactions
-      * Maps
-      * Files
-      
-   * Use the CEDA transaction to execute the commands in the above listing
-   
-      * Define group 
-         ```shell
-         DEFINE LIBRARY(COM2DOLL) GROUP(CARDDEMO) DSNAME01(&HLQ..LOADLIB)
-         ```
-      * Define Mapsets, Maps , Programs and Files
-      
-         Sample CEDA commands
-         
-         ```shell
-         DEF PROGRAM(COCRDLIC) GROUP(CARDDEMO)
-         DEF MAPSET(COCRDLI) GROUP(CARDDEMO)
-         DEFINE PROGRAM(COSGN00C) GROUP(CARDDEMO) DA(ANY) TRANSID(CC00) DESCRIPTION(LOGIN)
-         DEFINE TRANSACTION(CC00) GROUP(CARDDEMO) PROGRAM(COSGN00C) TASKDATAL(ANY)
-         ```
-
-   * Install /Load the online resources to your CICS region
-
-      ```shell
-      CEDA INSTALL TRANS(CCLI) GROUP(CARDDEMO)
-      CEDA INSTALL FILE(CARDDAT) GROUP(CARDDEMO)
-      CECI LOAD PROG(COCRDUP)
-      CECI LOAD PROG(COCRDUPC)
-      ```
-
-   * Execute a NEWCOPY of mapsets and maps
-      ```shell
-      CEMT SET PROG(COCRDUP) NEWCOPY
-      CEMT SET PROG(COCRDUPC) NEWCOPY  
-      ```
-6. Enjoy the demo
-
-   * For online functions : Start the CardDemo application using the CC00 transaction
-     - Enter userid ADMIN001 and the initially configured password PASSWORD to manage users
-     - Enter userid USER0001 and the initially configured password PASSWORD to access back office functions
-   * For batch            : See the instructions for running full batch below.
-
-## Running full batch 
-   
-  * Execute the following JCLs in order
-
-    | Jobname  | What it does                                        |
-    | :------- | :-------------------------------------------------- |
-    | CLOSEFIL | Closes files opened by CICS                         |
-    | ACCTFILE | Loads Account database using sample data            |
-    | CARDFILE | Loads Card database with credit card sample data    |
-    | XREFFILE | Loads Customer Card account cross reference to VSAM |
-    | CUSTFILE | Creates customer database                           |
-    | TRANBKP  | Creates Transaction database                        |
-    | DISCGRP  | Copies initial disclosure Group file  to VSAM       |
-    | TCATBALF | Copies initial TCATBALF file  to VSAM               |
-    | TRANTYPE | Copies initial transaction type file                |
-    | DUSRSECJ | Sets up user security vsam file                     |
-    | POSTTRAN | Core processing job                                 |
-    | INTCALC  | Run interest calculations                           |
-    | TRANBKP  | Backup Transaction database                         |
-    | COMBTRAN | Combine system transactions with daily ones         |
-    | CREASTMT | Produce transaction statement                       | 	
-    | TRANIDX  | Define alternate index on transaction file          |
-    | OPENFIL  | Makes files available to CICS                       |
-<br/>
-
-## Application Details 
-The CardDemo is a Credit Card management application, built primarily using COBOL programming language. The application has various functions that allows users to manage Account, Credit card, Transaction and Bill payment. 
-
-There are 2 types of users:
-* Regular User
-* Admin User
-
-The Regular user can perform the user functions and the Admin users can only perform Admin functions.
-
-<br/>
-
-### User Functions
-
-![Alt text](./diagrams/Application-Flow-User.png?raw=true "User Flow")
-
-<br/>
-
-### Admin Functions
-
-![Alt text](./diagrams/Application-Flow-Admin.png?raw=true "Admin Flow")
-
-<br/>
-
-### Application Inventory
-
-#### **Online**
-
-| Transaction |      | BMS Map | Program  | Function            |
-| :---------- | :--- | :------ | :------- | :------------------ |
-| CC00        |      | COSGN00 | COSGN00C | Signon Screen       |
-| CM00        |      | COMEN01 | COMEN01C | Main Menu           |
-|             | CAVW | COACTVW | COACTVWC | Account View        |
-|             | CAUP | COACTUP | COACTUPC | Account Update      |
-|             | CCLI | COCRDLI | COCRDLIC | Credit Card List    |
-|             | CCDL | COCRDSL | COCRDSLC | Credit Card View    |
-|             | CCUP | COCRDUP | COCRDUPC | Credit Card Update  |
-|             | CT00 | COTRN00 | COTRN00C | Transaction List    |
-|             | CT01 | COTRN01 | COTRN01C | Transaction View    |
-|             | CT02 | COTRN02 | COTRN02C | Transaction Add     |
-|             | CR00 | CORPT00 | CORPT00C | Transaction Reports |
-|             | CB00 | COBIL00 | COBIL00C | Bill Payment        |
-| CA00        |      | COADM01 | COADM01C | Admin Menu          |
-|             | CU00 | COUSR00 | COUSR00C | List Users          |
-|             | CU01 | COUSR01 | COUSR01C | Add User            |
-|             | CU02 | COUSR02 | COUSR02C | Update User         |
-|             | CU03 | COUSR03 | COUSR03C | Delete User         |
-
-#### **Batch**
-
-| Job      | Program  | Function                                   |
-| :------- | :------- | :----------------------------------------- |
-| DUSRSECJ | IEBGENER | Initial Load of User security file         |
-| DEFGDGB  | IDCAMS   | Setup GDG Bases                            | 
-| ACCTFILE | IDCAMS   | Refresh Account Master                     |
-| CARDFILE | IDCAMS   | Refresh Card Master                        |
-| CUSTFILE | IDCAMS   | Refresh Customer Master                    |
-| DISCGRP  | IDCAMS   | Load Disclosure Group File                 |
-| TRANFILE | IDCAMS   | Load Transaction Master file               |
-| TRANCATG | IDCAMS   | Load Transaction category types            |
-| TRANTYPE | IDCAMS   | Load Transaction type file                 |
-| XREFFILE | IDCAMS   | Account, Card and Customer cross reference |
-| CLOSEFIL | IEFBR14  | Close VSAM files in CICS                   |
-| TCATBALF | IDCAMS   | Refresh Transaction Category Balance       |
-| TRANBKP  | IDCAMS   | Refresh Transaction Master                 |
-| POSTTRAN | CBTRN02C | Transaction processing job                 |
-| TRANIDX  | IDCAMS   | Define AIX for transaction file            |
-| OPENFIL  | IEFBR14  | Open files in CICS                         |
-| INTCALC  | CBACT04C | Run interest calculations                  |
-| COMBTRAN | SORT     | Combine transaction files                  |
-| CREASTMT | CBSTM03A | Produce transaction statement              |
-
-<br/>
-
-### Application Screens
-
-#### **Signon Screen**
-
-![Alt text](./diagrams/Signon-Screen.png?raw=true "Signon Screen")
-
-
-#### **Main Menu**
-
-![Alt text](./diagrams/Main-Menu.png?raw=true "Main Menu")
-
-#### **Admin Menu**
-
-![Alt text](./diagrams/Admin-Menu.png?raw=true "Admin Menu")
-
-<br/>
-
-## Support
-
-If you have questions or requests for improvement please raise an issue in the repository.
-
-<br/>
-
-## Roadmap
-
-The following features are planned for upcoming releases
-
-1. More database types
-
-   1. Relational Database usage : Db2 
-   
-   2. Hierachical database calls : IMS
-
-2. Integration
-
-   * ftp, sftp
-   
-   * Message queue integration
-   
-   * Exposure of transactions for distributed application integration
-
-<br/>
-
-## Contributing
-
-We are looking forward to receiving contributions and enhancements to this initial codebase from the mainframe code base
-
-Feel free to raise issues, create code and raise merge requests for enhancements so that we can build out this application as a resource for programmers wanting to understand and modernize their mainframes.
-
-<br/>
-
-## License
-
-This is intended to be a community resource and it is released under the Apache 2.0 license.
-
-<br/>
-
-## Project status
-
-We are planning a v2 of this application in Q1 2023.
-
-Watch this space for updates
-
-<br/>
-
-
+# CardDemo -- Mainframe CardDemo Application
+> **Note**: This is a forked version of the original [AWS Mainframe Modernization CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo/blob/main/README.md). For overall application structure, installation instructions, and general usage details, please refer to the original repository. For technical support or feature requests, open an issue in this repository.
+This fork adapts and extends the application to explore multiple architectural patterns:
+1. **Screen to RPC (VSAM)** – AL00  
+2. **Screen to DB2** – AD00  
+3. **Screen to RPC with DB2** – AA00
+## Overview of Variants
+| Variant | Flow Type              | Initial Transaction | Subsequent Transactions Prefix | Screen Prefix | Logic Prefix | Backend       | Notes                                                                 |
+|---------|------------------------|----------------------|--------------------------------|----------------|---------------|----------------|------------------------------------------------------------------------|
+| AL00    | Screen → RPC           | `AL00`               | `ALSX`                         | `COxxxxxS`     | `COxxxxxL`    | VSAM (RPC)    | Standard CICS-to-RPC flow using VSAM. RPC logic handles persistence.  |
+| AD00    | Screen → DB2           | `AD00`               | `ADSX`                         | `COxxxxxD`     | (None)        | DB2 (Direct)  | CICS programs directly access DB2, no RPC layer.                      |
+| AA00    | Screen → RPC (with DB2)| `AA00`               | `AASX`                         | `COxxxxxU`     | `COxxxxxA`    | DB2 (via RPC) | RPC layer integrates with DB2.                           |
+- ✅ **Admin Menu**: All options functional  
+- ✅ **User Menu**: Options 01–05 functional  
+- ⚠️ `COACTUPS` / `COACTUPU` implement View/Update via RPC-to-RPC
+## Program & Dataset Structure
+| Program Type     | Naming Convention | Folder/Location     | Description                                      |
+|------------------|-------------------|----------------------|--------------------------------------------------|
+| Screens          | `COxxxxxS`        | `cbl-src`            | CICS screen logic                                |
+| RPC (VSAM)       | `COxxxxxL`        | `cbl-rpc`            | Business logic using VSAM                        |
+| DB2 Direct       | `COxxxxxD`        | `cbl-db2`            | Programs that access DB2 directly                |
+| Screens (DB2)    | `COxxxxxU`        | `cbl-src-db2`        | CICS screens that call DB2-enabled RPC programs  |
+| RPC (DB2)        | `COxxxxxA`        | `cbl-rpc-db2`        | RPC programs using DB2                           |
+| Copybooks        | -                 | `app/cpy`            | Copybooks remain under `app/cpy`             |
+## DB2 Schema
+* All DB2 tables are defined under the schema: `ALAINL` in the programs, these must be changed to `<your-schema>`
+## Source Location
+- COBOL source code (screen, RPC, DB2) is organized by function in:
+  - `cbl-src`  
+  - `cbl-rpc`  
+  - `cbl-db2`  
+  - `cbl-src-db2`  
+  - `cbl-rpc-db2`  
+- Copybooks remain under: `app/cpy`
+
+## DB2 Environment Setup
+
+### Prerequisites
+To run the DB2 variants (AD00 and AA00), you need to establish a proper DB2 environment. The following setup is required:
+
+### DB2 Configuration Steps
+
+1. **Create DB2 Entry**: Create a DB2ENTRY in your CICS region with the same name as your schema (`ALAINL`)
+
+2. **Thread Limit**: Set the thread limit to at least 50 to ensure adequate connection pooling
+
+3. **CICS Resource Definitions**: Use CEDA to define and install:
+   - All PROGRAMS for the respective variants
+   - All TRANSACTIONS 
+   - DB2TRANSACTION pointing to your DB2ENTRY
+   - **Important**: Due to the pseudoconversational nature of the application, previous transactions (such as Signon, UserMenu, or AdminMenu) may retain control even after transferring control to subsequent programs. This can persist until a transaction change occurs. To prevent DB2 authorization issues, create DB2TRANSACTION definitions for all transactions in the flow, not just the DB2-accessing programs.
+   - Ensure resources are installed under your CICS group
+
+### Database Schema Creation
+
+The following SQL script creates the complete database schema for the CardDemo application:
+
+```sql
+-- =================================================================
+-- CUSTOMIZED CREDIT CARD DATABASE SCHEMA
+-- Replace <your-schema> with your actual schema name
+-- Replace <your-DB-name> with your actual database name
+-- =================================================================
+
+-- =================================================================
+-- 1. CARDDAT - Credit Card Master Table
+-- =================================================================
+CREATE TABLE <your-schema>.CARDDAT (
+    CARD_NUM               CHAR(16) NOT NULL,
+    CARD_ACCT_ID           DECIMAL(11,0) NOT NULL,
+    CARD_ACTIVE_STATUS     CHAR(1) NOT NULL,
+    CARD_CVV_CD            DECIMAL(3,0),
+    CARD_EMBOSSED_NAME     CHAR(50),
+    CARD_EXPIRY_DATE       DATE,
+    CARD_CREAT_DATE        DATE,
+    CARD_CREAT_TIME        TIME,
+    CARD_CREAT_USER        CHAR(10),
+    CARD_UPDATE_DATE       DATE,
+    CARD_UPDATE_TIME       TIME,
+    CARD_UPDATE_USER       CHAR(10),
+    
+    CONSTRAINT PK_CARDDAT PRIMARY KEY (CARD_NUM)
+) IN DATABASE <your-DB-name>;
+GRANT SELECT ON <your-schema>.CARDDAT TO PUBLIC;
+
+-- =================================================================
+-- 2. ACCTDAT - Account Master Table (RECLN 300)
+-- Based on ACCOUNT-RECORD copybook
+-- =================================================================
+CREATE TABLE <your-schema>.ACCTDAT (
+    ACCT_ID                DECIMAL(11,0) NOT NULL,        -- PIC 9(11)
+    ACCT_ACTIVE_STATUS     CHAR(1) NOT NULL,              -- PIC X(01)
+    ACCT_CURR_BAL          DECIMAL(12,2),                 -- PIC S9(10)V99
+    ACCT_CREDIT_LIMIT      DECIMAL(12,2),                 -- PIC S9(10)V99
+    ACCT_CASH_CREDIT_LIMIT DECIMAL(12,2),                 -- PIC S9(10)V99
+    ACCT_OPEN_DATE         CHAR(10),                      -- PIC X(10)
+    ACCT_EXPIRAION_DATE    CHAR(10),                      -- PIC X(10)
+    ACCT_REISSUE_DATE      CHAR(10),                      -- PIC X(10)
+    ACCT_CURR_CYC_CREDIT   DECIMAL(12,2),                 -- PIC S9(10)V99
+    ACCT_CURR_CYC_DEBIT    DECIMAL(12,2),                 -- PIC S9(10)V99
+    ACCT_ADDR_ZIP          CHAR(10),                      -- PIC X(10)
+    ACCT_GROUP_ID          CHAR(10),                      -- PIC X(10)
+    
+    CONSTRAINT PK_ACCTDAT PRIMARY KEY (ACCT_ID)
+) IN DATABASE <your-DB-name>;
+
+-- =================================================================
+-- 3. CUSTDAT - Customer Master Table (RECLN 500)
+-- Based on CUSTOMER-RECORD copybook
+-- =================================================================
+CREATE TABLE <your-schema>.CUSTDAT (
+    CUST_ID                     DECIMAL(9,0) NOT NULL,    -- PIC 9(09)
+    CUST_FIRST_NAME             CHAR(25),                 -- PIC X(25)
+    CUST_MIDDLE_NAME            CHAR(25),                 -- PIC X(25)
+    CUST_LAST_NAME              CHAR(25),                 -- PIC X(25)
+    CUST_ADDR_LINE_1            CHAR(50),                 -- PIC X(50)
+    CUST_ADDR_LINE_2            CHAR(50),                 -- PIC X(50)
+    CUST_ADDR_LINE_3            CHAR(50),                 -- PIC X(50)
+    CUST_ADDR_STATE_CD          CHAR(2),                  -- PIC X(02)
+    CUST_ADDR_COUNTRY_CD        CHAR(3),                  -- PIC X(03)
+    CUST_ADDR_ZIP               CHAR(10),                 -- PIC X(10)
+    CUST_PHONE_NUM_1            CHAR(15),                 -- PIC X(15)
+    CUST_PHONE_NUM_2            CHAR(15),                 -- PIC X(15)
+    CUST_SSN                    DECIMAL(9,0),             -- PIC 9(09)
+    CUST_GOVT_ISSUED_ID         CHAR(20),                 -- PIC X(20)
+    CUST_DOB_YYYY_MM_DD         CHAR(10),                 -- PIC X(10)
+    CUST_EFT_ACCOUNT_ID         CHAR(10),                 -- PIC X(10)
+    CUST_PRI_CARD_HOLDER_IND    CHAR(1),                  -- PIC X(01)
+    CUST_FICO_CREDIT_SCORE      DECIMAL(3,0),             -- PIC 9(03)
+    
+    CONSTRAINT PK_CUSTDAT PRIMARY KEY (CUST_ID)
+) IN DATABASE <your-DB-name>;
+
+-- =================================================================
+-- 4. CXACAIX - Card Cross Reference Table (Account to Customer)
+-- =================================================================
+CREATE TABLE <your-schema>.CXACAIX (
+    XREF_ACCT_ID           DECIMAL(11,0) NOT NULL,
+    XREF_CARD_NUM          CHAR(16) NOT NULL,
+    XREF_CUST_ID           DECIMAL(9,0) NOT NULL,
+    
+    CONSTRAINT PK_CXACAIX PRIMARY KEY (XREF_ACCT_ID, XREF_CARD_NUM)
+) IN DATABASE <your-DB-name>;
+
+-- =================================================================
+-- Create Indexes for Performance
+-- =================================================================
+
+-- CARDDAT indexes
+CREATE INDEX <your-schema>.IDX_CARDDAT_ACCT 
+    ON <your-schema>.CARDDAT (CARD_ACCT_ID);
+
+CREATE INDEX <your-schema>.IDX_CARDDAT_STATUS 
+    ON <your-schema>.CARDDAT (CARD_ACTIVE_STATUS);
+
+-- ACCTDAT indexes  
+CREATE INDEX <your-schema>.IDX_ACCTDAT_STATUS 
+    ON <your-schema>.ACCTDAT (ACCT_ACTIVE_STATUS);
+
+-- CUSTDAT indexes
+CREATE INDEX <your-schema>.IDX_CUSTDAT_SSN 
+    ON <your-schema>.CUSTDAT (CUST_SSN);
+
+CREATE INDEX <your-schema>.IDX_CUSTDAT_LASTNAME 
+    ON <your-schema>.CUSTDAT (CUST_LAST_NAME);
+
+-- CXACAIX indexes
+CREATE INDEX <your-schema>.IDX_CXACAIX_CUST 
+    ON <your-schema>.CXACAIX (XREF_CUST_ID);
+
+CREATE INDEX <your-schema>.IDX_CXACAIX_CARD 
+    ON <your-schema>.CXACAIX (XREF_CARD_NUM);
+
+-- =================================================================
+-- Add Table Comments
+-- =================================================================
+COMMENT ON TABLE <your-schema>.CARDDAT IS 'Credit Card Master Data';
+COMMENT ON TABLE <your-schema>.ACCTDAT IS 'Account Master Data - RECLN 300';  
+COMMENT ON TABLE <your-schema>.CUSTDAT IS 'Customer Master Data - RECLN 500';
+COMMENT ON TABLE <your-schema>.CXACAIX IS 'Card/Account/Customer Cross Reference';
+
+-- =================================================================
+-- Grant Privileges
+-- =================================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.CARDDAT TO PUBLIC;
+GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.ACCTDAT TO PUBLIC;
+GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.CUSTDAT TO PUBLIC;
+GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.CXACAIX TO PUBLIC;
+
+-- =================================================================
+-- Sample Test Data - Individual INSERT statements
+-- Based on actual copybook field definitions
+-- =================================================================
+
+-- Customer data - individual inserts
+INSERT INTO <your-schema>.CUSTDAT VALUES 
+    (000000001, 'JOHN', 'Q', 'DOE', '123 MAIN ST', '', 'ANYTOWN', 'NY', 'USA', '12345', '(555)123-4567', '', 123456789, 'DL123456', '1980-01-15', 'EFT001', 'Y', 750);
+
+INSERT INTO <your-schema>.CUSTDAT VALUES 
+    (000000002, 'JANE', '', 'SMITH', '456 OAK AVE', 'APT 2B', 'SOMEWHERE', 'CA', 'USA', '54321', '(555)987-6543', '', 234567890, 'DL234567', '1975-06-20', 'EFT002', 'Y', 680);
+
+INSERT INTO <your-schema>.CUSTDAT VALUES 
+    (000000003, 'BOB', 'R', 'JOHNSON', '789 PINE RD', '', 'ELSEWHERE', 'TX', 'USA', '67890', '(555)456-7890', '', 345678901, 'DL345678', '1990-12-05', 'EFT003', 'Y', 720);
+
+-- Account data - individual inserts
+INSERT INTO <your-schema>.ACCTDAT VALUES 
+    (00000000001, 'Y', 1500.00, 5000.00, 1000.00, '2020-01-15', '2025-01-15', '2023-01-15', 500.00, 300.00, '12345', 'GOLD');
+
+INSERT INTO <your-schema>.ACCTDAT VALUES 
+    (00000000002, 'Y', -250.75, 3000.00, 500.00, '2019-06-20', '2024-06-20', '2022-06-20', 200.00, 450.75, '54321', 'SILVER');
+
+INSERT INTO <your-schema>.ACCTDAT VALUES 
+    (00000000003, 'N', 0.00, 2000.00, 200.00, '2021-12-05', '2026-12-05', '2024-12-05', 0.00, 0.00, '67890', 'BRONZE');
+
+-- Card data - individual inserts
+INSERT INTO <your-schema>.CARDDAT VALUES 
+    ('4444000000000001', 00000000001, 'Y', 123, 'JOHN Q DOE', '2025-12-31', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
+
+INSERT INTO <your-schema>.CARDDAT VALUES 
+    ('4444000000000002', 00000000002, 'Y', 456, 'JANE SMITH', '2026-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
+
+INSERT INTO <your-schema>.CARDDAT VALUES 
+    ('4444000000000003', 00000000003, 'N', 789, 'BOB R JOHNSON', '2024-03-31', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
+
+-- Cross-reference data - individual inserts
+INSERT INTO <your-schema>.CXACAIX VALUES 
+    (00000000001, '4444000000000001', 000000001);
+
+INSERT INTO <your-schema>.CXACAIX VALUES 
+    (00000000002, '4444000000000002', 000000002);
+
+INSERT INTO <your-schema>.CXACAIX VALUES 
+    (00000000003, '4444000000000003', 000000003);
+
+GRANT ALL ON <your-schema>.CARDDAT TO PUBLIC;
+GRANT ALL ON <your-schema>.ACCTDAT TO PUBLIC;
+GRANT ALL ON <your-schema>.CUSTDAT TO PUBLIC;
+GRANT ALL ON <your-schema>.CXACAIX TO PUBLIC;
+GRANT EXECUTE ON PLAN <your-schema> TO <your-schema>;
+```
+
+---

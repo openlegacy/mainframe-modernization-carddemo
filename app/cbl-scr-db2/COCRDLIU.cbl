@@ -1359,4 +1359,3 @@
        SEND-LONG-TEXT-EXIT.
            EXIT
            .
-

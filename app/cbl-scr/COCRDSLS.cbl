@@ -439,8 +439,7 @@
       *                      CALL-RPC-PROGRAM
       *----------------------------------------------------------------*
        CALL-RPC-PROGRAM.
-           DISPLAY 'WS-RPC-PROGRAM: ' LIT-RPCPGM
-           DISPLAY 'TAGAALIN: .' WS-RPC-COMMAREA
+
            EXEC CICS LINK
                 PROGRAM(LIT-RPCPGM)
                 COMMAREA(WS-RPC-COMMAREA)
@@ -451,9 +450,6 @@
            MOVE WS-RESP-CD TO WS-RESP-DISP
            MOVE WS-REAS-CD TO WS-REAS-DISP.
 
-           DISPLAY 'WS-RESP-DISP: ' WS-RESP-DISP
-           DISPLAY 'WS-REAS-DISP: ' WS-REAS-DISP.
-           DISPLAY 'COMMAREA LENGTH: ' LENGTH OF WS-RPC-COMMAREA.
 
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)

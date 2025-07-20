@@ -1,9 +1,9 @@
       ******************************************************************
-      * Program     : COACTUPS.CBL
+      * Program     : COACTUPU.CBL
       * Application : CardDemo
       * Type        : CICS Screen Program
-      * Function    : Account Update Screen - calls COACTUPL RPC
-      * Transaction : ALS5
+      * Function    : Account Update Screen - calls coactupa RPC
+      * Transaction : AAS5
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -21,7 +21,7 @@
       * language governing permissions and limitations under the License
       ******************************************************************
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. COACTUPS.
+       PROGRAM-ID. COACTUPU.
 
        ENVIRONMENT DIVISION.
        CONFIGURATION SECTION.
@@ -30,7 +30,7 @@
        WORKING-STORAGE SECTION.
 
        01 WS-VARIABLES.
-         05 WS-TRANID                  PIC X(04) VALUE 'ALS5'.
+         05 WS-TRANID                  PIC X(04) VALUE 'AAS5'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                         VALUE 'Y'.
@@ -172,19 +172,19 @@
       ******************************************************************
        01 WS-LITERALS.
           05 LIT-THISPGM                           PIC X(8)
-                                                   VALUE 'COACTUPS'.
+                                                   VALUE 'COACTUPU'.
           05 LIT-THISTRANID                        PIC X(4)
-                                                   VALUE 'ALS5'.
+                                                   VALUE 'AAS5'.
           05 LIT-THISMAPSET                        PIC X(8)
                                                    VALUE 'COACTUP '.
           05 LIT-THISMAP                           PIC X(7)
                                                    VALUE 'CACTUPA'.
           05 LIT-MENUPGM                           PIC X(8)
-                                                   VALUE 'COMEN01S'.
+                                                   VALUE 'COMEN01U'.
           05 LIT-MENUTRANID                        PIC X(4)
-                                                   VALUE 'ALUM'.
+                                                   VALUE 'AAUM'.
           05 LIT-RPC-PROGRAM                       PIC X(08)
-                                                   VALUE 'COACTUPL'.
+                                                   VALUE 'COACTUPA'.
 
       ******************************************************************
       *Other common working storage Variables
@@ -349,7 +349,7 @@
 
        01  WS-COMMAREA                                 PIC X(2000).
 
-      * RPC Communication Area - MUST MATCH COACTUPL EXACTLY
+      * RPC Communication Area - MUST MATCH coactupa EXACTLY
        01 WS-RPC-COMMAREA.
           05 LK-INPUT-PARMS.
              10 LK-IN-OPERATION           PIC X(01).
@@ -459,9 +459,11 @@
 
        PROCEDURE DIVISION.
        0000-MAIN.
+
            EXEC CICS HANDLE ABEND
                      LABEL(ABEND-ROUTINE)
            END-EXEC
+
            INITIALIZE WS-VARIABLES
                       WS-COMMAREA
                       WS-RPC-COMMAREA
@@ -476,6 +478,7 @@
       *****************************************************************
       * Store passed data if  any                *
       *****************************************************************
+
            IF EIBCALEN IS EQUAL TO 0
                OR (CDEMO-FROM-PROGRAM = LIT-MENUPGM
                AND NOT CDEMO-PGM-REENTER)
@@ -496,6 +499,7 @@
       *****************************************************************
            PERFORM YYYY-STORE-PFKEY
               THRU YYYY-STORE-PFKEY-EXIT
+
       *****************************************************************
       * Check the AID to see if its valid at this point               *
       * F3 - Exit
@@ -513,6 +517,7 @@
            IF PFK-INVALID
               SET CCARD-AID-ENTER TO TRUE
            END-IF
+
       *****************************************************************
       * Decide what to do based on inputs received
       *****************************************************************
@@ -567,7 +572,6 @@
                            3000-SEND-MAP-EXIT
                    SET CDEMO-PGM-REENTER        TO TRUE
                    SET ACUP-DETAILS-NOT-FETCHED TO TRUE
-
                    GO TO COMMON-RETURN
       ******************************************************************
       *       ACCT DATA CHANGES REVIEWED, OKAYED AND DONE SUCESSFULLY
@@ -583,7 +587,6 @@
                            3000-SEND-MAP-EXIT
                    SET CDEMO-PGM-REENTER          TO TRUE
                    SET ACUP-DETAILS-NOT-FETCHED   TO TRUE
-
                    GO TO COMMON-RETURN
       ******************************************************************
       *      ACCT DATA HAS BEEN PRESENTED TO USER
@@ -1365,6 +1368,7 @@
            MOVE ACUP-OLD-OPEN-DATE(1:4)     TO OPNYEARO OF CACTUPAO
            MOVE ACUP-OLD-OPEN-DATE(5:2)     TO OPNMONO  OF CACTUPAO
            MOVE ACUP-OLD-OPEN-DATE(7:2)     TO OPNDAYO  OF CACTUPAO
+
            MOVE ACUP-OLD-EXPIRAION-DATE(1:4) TO EXPYEARO OF CACTUPAO
            MOVE ACUP-OLD-EXPIRAION-DATE(5:2) TO EXPMONO  OF CACTUPAO
            MOVE ACUP-OLD-EXPIRAION-DATE(7:2) TO EXPDAYO  OF CACTUPAO
@@ -1851,6 +1855,7 @@
 
            MOVE SPACES TO LK-INPUT-PARMS LK-OUTPUT-STATUS LK-OUTPUT-DATA
            SET OP-READ TO TRUE
+
            MOVE CDEMO-ACCT-ID TO LK-IN-ACCT-ID
 
            PERFORM CALL-RPC-PROGRAM
@@ -1895,15 +1900,16 @@
               THRU COLLECT-RPC-FROM-SCREEN-EXIT
 
            PERFORM CALL-RPC-PROGRAM
+
            IF NOT ERR-FLG-ON
       *        Use the message from RPC directly
                MOVE LK-OUT-MESSAGE TO WS-RETURN-MSG
+
       *        Handle field-specific error highlighting for input errors
                IF RC-INPUT-ERROR
                    PERFORM 9650-PROCESS-FIELD-ERRORS
                       THRU 9650-PROCESS-FIELD-ERRORS-EXIT
                END-IF
-
            ELSE
                MOVE 'Error calling account service' TO WS-RETURN-MSG
            END-IF
@@ -1912,13 +1918,13 @@
            EXIT
            .
        9650-PROCESS-FIELD-ERRORS.
-      *    This paragraph processes field-specific errors returned by COACTUPL
+      *    This paragraph processes field-specific errors returned by coactupa
       *    and sets highlighting flags for the appropriate fields
 
            MOVE SPACES TO WS-ERROR-FIELD
 
       *    Check if LK-OUT-MESSAGE contains field name information
-      *    This is a simplified approach - in reality, COACTUPL would need
+      *    This is a simplified approach - in reality, coactupa would need
       *    to return structured error information
            EVALUATE TRUE
                WHEN LK-OUT-MESSAGE(1:12) = 'Account ID' OR
@@ -2103,7 +2109,7 @@
                    CONTINUE
                WHEN DFHRESP(PGMIDERR)
                    SET ERR-FLG-ON TO TRUE
-                   MOVE 'COACTUPL program not found' TO WS-MESSAGE
+                   MOVE 'coactupa program not found' TO WS-MESSAGE
                WHEN OTHER
                    SET ERR-FLG-ON TO TRUE
                    MOVE 'Error calling RPC program' TO WS-MESSAGE
@@ -2114,8 +2120,8 @@
            .
 
        POPULATE-FROM-RPC.
+
       * Store Context in Commarea
-           MOVE LK-OUT-ACCT-ID TO  CDEMO-ACCT-ID
            MOVE LK-OUT-CUST-ID TO CDEMO-CUST-ID
            MOVE LK-OUT-CUST-FIRST-NAME TO CDEMO-CUST-FNAME
            MOVE LK-OUT-CUST-MIDDLE-NAME TO CDEMO-CUST-MNAME
@@ -2135,7 +2141,6 @@
            MOVE LK-OUT-ACCT-CURR-CYC-DEBIT TO ACUP-OLD-CURR-CYC-DEBIT-N
 
       * Account dates - parse from YYYY-MM-DD format
-
            IF LK-OUT-ACCT-OPEN-DATE NOT = SPACES
                MOVE LK-OUT-ACCT-OPEN-DATE(1:4)
                TO ACUP-OLD-OPEN-DATE(1:4)
@@ -2261,3 +2266,7 @@
        ABEND-ROUTINE-EXIT.
            EXIT
            .
+
+      *
+      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:32 CDT
+      * ACCTSIDA OF CACTUPAI

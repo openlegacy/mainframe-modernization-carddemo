@@ -332,18 +332,16 @@
            IF EIBCALEN IS EQUAL TO 0
                OR (CDEMO-FROM-PROGRAM = LIT-MENUPGM
                AND NOT CDEMO-PGM-REENTER)
-               DISPLAY 'ALAIN0'
+
               INITIALIZE CARDDEMO-COMMAREA
                          WS-THIS-PROGCOMMAREA
-                         DISPLAY 'ALAIN1'
+
            ELSE
-           DISPLAY 'ALAIN2'
               MOVE DFHCOMMAREA (1:LENGTH OF CARDDEMO-COMMAREA)  TO
                                 CARDDEMO-COMMAREA
               MOVE DFHCOMMAREA(LENGTH OF CARDDEMO-COMMAREA + 1:
                                LENGTH OF WS-THIS-PROGCOMMAREA ) TO
                                 WS-THIS-PROGCOMMAREA
-                                DISPLAY 'ALAIN3'
 
            END-IF
 
@@ -406,7 +404,6 @@
                              COMMAREA(CARDDEMO-COMMAREA)
                    END-EXEC
               WHEN CDEMO-PGM-ENTER
-              DISPLAY 'ALAIN5'
       ******************************************************************
       *            COMING FROM SOME OTHER CONTEXT
       *            SELECTION CRITERIA TO BE GATHERED
@@ -415,7 +412,6 @@
                            1000-SEND-MAP-EXIT
                    GO TO COMMON-RETURN
               WHEN CDEMO-PGM-REENTER
-              DISPLAY 'ALAIN7'
                    PERFORM 2000-PROCESS-INPUTS
                       THRU 2000-PROCESS-INPUTS-EXIT
                    IF INPUT-ERROR

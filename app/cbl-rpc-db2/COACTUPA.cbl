@@ -1,9 +1,9 @@
-******************************************************************
-      * Program:     COACTUPL.CBL                                     *
+      ******************************************************************
+      * Program:     COACTUPA.CBL                                     *
       * Layer:       Business logic                                   *
       * Function:    RPC Service for Account Management               *
       * Description: API for read/update account and customer data    *
-      *              Modified to use COACTVWL for read operations     *
+      *              Modified to use COACTVWA for read operations     *
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -22,7 +22,7 @@
       ******************************************************************
        IDENTIFICATION DIVISION.
        PROGRAM-ID.
-           COACTUPL.
+           COACTUPA.
        DATE-WRITTEN.
            May 2025.
        DATE-COMPILED.
@@ -162,6 +162,13 @@
                                                    VALUE SPACES.
           10 WS-TEMP-CREDIT-LIMIT                  PIC S9(10)V99
                                                    VALUE ZEROS.
+          10 WS-TEMP-SSN-CHAR.
+             15 WS-SSN-PART1                       PIC X(3).
+             15 WS-SSN-PART2                       PIC X(3).
+             15 WS-SSN-PART3                       PIC X(3).
+
+          10  WS-TEMP-SSN-NUMERIC REDEFINES WS-TEMP-SSN-CHAR
+                                                   PIC 9(9).
 
          05  WS-DATACHANGED-FLAG                   PIC X(1).
            88  NO-CHANGES-FOUND                    VALUE '0'.
@@ -363,6 +370,58 @@
            10 WS-CUST-MASTER-READ-FLAG             PIC X(1).
               88 FOUND-CUST-IN-MASTER              VALUE '1'.
 
+      ******************************************************************
+      * DB2 SQL COMMUNICATION AREA
+      ******************************************************************
+           EXEC SQL INCLUDE SQLCA END-EXEC.
+
+      ******************************************************************
+      * DB2 HOST VARIABLES
+      ******************************************************************
+           EXEC SQL BEGIN DECLARE SECTION END-EXEC.
+
+       01  HV-ACCOUNT-ID                        PIC X(11).
+       01  HV-CUSTOMER-ID                       PIC S9(9) COMP.
+       01  HV-CARD-NUMBER                       PIC X(16).
+       01  HV-SQLCODE-DISPLAY                   PIC S9(9) DISPLAY.
+
+       01  HV-ACCOUNT-RECORD.
+           05  HV-ACCT-ID                       PIC X(11).
+           05  HV-ACCT-STATUS                   PIC X(1).
+           05  HV-ACCT-CURR-BAL                 PIC S9(10)V99 COMP-3.
+           05  HV-ACCT-CREDIT-LMT               PIC S9(10)V99 COMP-3.
+           05  HV-ACCT-CASH-LMT                 PIC S9(10)V99 COMP-3.
+           05  HV-ACCT-OPEN-DT                  PIC X(10).
+           05  HV-ACCT-EXPIRY-DT                PIC X(10).
+           05  HV-ACCT-REISSUE-DT               PIC X(10).
+           05  HV-ACCT-CYC-CREDIT               PIC S9(10)V99 COMP-3.
+           05  HV-ACCT-CYC-DEBIT                PIC S9(10)V99 COMP-3.
+           05  HV-ACCT-ZIP                      PIC X(10).
+           05  HV-ACCT-GROUP-ID                 PIC X(10).
+
+       01  HV-CUSTOMER-RECORD.
+           05  HV-CUST-ID                       PIC S9(9) COMP.
+           05  HV-CUST-FNAME                    PIC X(25).
+           05  HV-CUST-MNAME                    PIC X(25).
+           05  HV-CUST-LNAME                    PIC X(25).
+           05  HV-CUST-ADDR1                    PIC X(50).
+           05  HV-CUST-ADDR2                    PIC X(50).
+           05  HV-CUST-ADDR3                    PIC X(50).
+           05  HV-CUST-STATE                    PIC X(2).
+           05  HV-CUST-COUNTRY                  PIC X(3).
+           05  HV-CUST-ZIP                      PIC X(10).
+           05  HV-CUST-PHONE1                   PIC X(15).
+           05  HV-CUST-PHONE2                   PIC X(15).
+           05  HV-CUST-SSN                      PIC S9(9) COMP.
+           05  HV-CUST-GOVT-ID                  PIC X(20).
+           05  HV-CUST-DOB                      PIC X(10).
+           05  HV-CUST-EFT-ID                   PIC X(10).
+           05  HV-CUST-PRI-HOLDER               PIC X(1).
+           05  HV-CUST-FICO                     PIC S9(3) COMP.
+
+       EXEC SQL END DECLARE SECTION END-EXEC.
+
+
          05  WS-FILE-ERROR-MESSAGE.
            10  FILLER                         PIC X(12)
                                                    VALUE 'File Error: '.
@@ -458,19 +517,9 @@
       ******************************************************************
        01 WS-LITERALS.
           05 LIT-THISPGM                           PIC X(8)
-                                                   VALUE 'COACTUPL'.
-          05 LIT-ACCTFILENAME                      PIC X(8)
-                                                   VALUE 'ACCTDAT '.
-          05 LIT-CUSTFILENAME                      PIC X(8)
-                                                   VALUE 'CUSTDAT '.
-          05 LIT-CARDFILENAME                      PIC X(8)
-                                                   VALUE 'CARDDAT '.
-          05 LIT-CARDFILENAME-ACCT-PATH            PIC X(8)
-                                                   VALUE 'CARDAIX '.
-          05 LIT-CARDXREFNAME-ACCT-PATH            PIC X(8)
-                                                   VALUE 'CXACAIX '.
-          05 LIT-VWL-PROGRAM                       PIC X(8)
-                                                   VALUE 'COACTVWL'.
+                                                   VALUE 'COACTUPA'.
+          05 LIT-VWA-PROGRAM                       PIC X(8)
+                                                   VALUE 'COACTVWA'.
       ******************************************************************
       * Literals for use in INSPECT statements
       ******************************************************************
@@ -508,7 +557,7 @@
       *CUSTOMER LAYOUT
        COPY CVCUS01Y.
 
-      * Commarea structures for VWL calls
+      * Commarea structures for VWA calls
        COPY COACTOLD.
 
       * Account Update Records
@@ -689,7 +738,6 @@
            SET INPUT-PENDING TO TRUE
            SET WS-RETURN-MSG-OFF TO TRUE
       * Determine the operation to perform
-      * Modify the main EVALUATE in COACTUPL:
            EVALUATE TRUE
                WHEN OP-READ
                    PERFORM 1000-PROCESS-READ
@@ -710,21 +758,18 @@
            GOBACK.
 
       ******************************************************************
-      * Process Read operation - Use VWL for reading
+      * Process Read operation - Use VWA for reading
       ******************************************************************
        1000-PROCESS-READ.
            PERFORM 1100-VALIDATE-READ-INPUT
               THRU 1100-VALIDATE-READ-INPUT-EXIT
-
            IF INPUT-ERROR
               SET RC-INPUT-ERROR TO TRUE
               MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
               GO TO 1000-PROCESS-READ-EXIT
            END-IF
-
-           PERFORM 9000-READ-VIA-VWL
-              THRU 9000-READ-VIA-VWL-EXIT
-
+           PERFORM 9000-READ-VIA-VWA
+              THRU 9000-READ-VIA-VWA-EXIT
            IF NOT RC-SUCCESS
               GO TO 1000-PROCESS-READ-EXIT
            END-IF
@@ -765,7 +810,6 @@
               MOVE ZEROES               TO WS-CARD-RID-ACCT-ID
               GO TO  1210-EDIT-ACCOUNT-EXIT
            END-IF
-
       *    Not numeric
       *    Not 11 characters
            MOVE LK-IN-ACCT-ID           TO WS-CARD-RID-ACCT-ID-X
@@ -836,8 +880,8 @@
                   THRU 9600-WRITE-PROCESSING-EXIT
 
                IF RC-SUCCESS
-                  PERFORM 9000-READ-VIA-VWL
-                     THRU 9000-READ-VIA-VWL-EXIT
+                  PERFORM 9000-READ-VIA-VWA
+                     THRU 9000-READ-VIA-VWA-EXIT
                   MOVE 'Changes committed to database'
                     TO LK-OUT-MESSAGE
                END-IF
@@ -918,7 +962,6 @@
            DELIMITED BY SIZE INTO WS-EDIT-DATE-CCYYMMDD
            PERFORM EDIT-DATE-CCYYMMDD
               THRU EDIT-DATE-CCYYMMDD-EXIT
-
            MOVE WS-EDIT-DATE-FLGS        TO WS-EDIT-OPEN-DATE-FLGS
            IF INPUT-ERROR AND LK-OUT-ERROR-FIELD = SPACES
                MOVE 'OPEN-YEAR' TO LK-OUT-ERROR-FIELD
@@ -1408,17 +1451,17 @@
            .
 
       ******************************************************************
-      * Verify Account Exists Before Update - Use VWL
+      * Verify Account Exists Before Update - Use VWA
       ******************************************************************
        2150-VERIFY-ACCOUNT-EXISTS.
-           PERFORM 9000-READ-VIA-VWL
-              THRU 9000-READ-VIA-VWL-EXIT
+           PERFORM 9000-READ-VIA-VWA
+              THRU 9000-READ-VIA-VWA-EXIT
 
            IF NOT RC-SUCCESS
               GO TO 2150-VERIFY-ACCT-EXISTS-EXIT
            END-IF
 
-      *    Store the data read from VWL as OLD data for comparison
+      *    Store the data read from VWA as OLD data for comparison
            PERFORM 9500-STORE-OLD-DATA
               THRU 9500-STORE-OLD-DATA-EXIT
               .
@@ -2148,16 +2191,14 @@
            .
 
       ******************************************************************
-      * MODIFIED SECTION - VWL OPERATIONS
+      * MODIFIED SECTION - VWA OPERATIONS
       ******************************************************************
-       9000-READ-VIA-VWL.
-      *    Call COACTVWL to read account and customer data
+       9000-READ-VIA-VWA.
+      *    Call COACTVWA to read account and customer data
            INITIALIZE OLD-ACCOUNT-COMMAREA
-
            MOVE LK-IN-ACCT-ID TO OLD-IN-ACCT-ID
-
            EXEC CICS LINK
-                PROGRAM(LIT-VWL-PROGRAM)
+                PROGRAM(LIT-VWA-PROGRAM)
                 COMMAREA(OLD-ACCOUNT-COMMAREA)
                 LENGTH(LENGTH OF OLD-ACCOUNT-COMMAREA)
                 RESP(WS-RESP-CD)
@@ -2166,22 +2207,21 @@
 
            MOVE WS-RESP-CD TO WS-RESP-CD-DISP.
            MOVE WS-REAS-CD TO WS-REAS-CD-DISP.
-
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)
                    IF OLD-RC-SUCCESS
-                       PERFORM 9100-MAP-FROM-VWL
-                          THRU 9100-MAP-FROM-VWL-EXIT
+                       PERFORM 9100-MAP-FROM-VWA
+                          THRU 9100-MAP-FROM-VWA-EXIT
                    ELSE
                        MOVE OLD-OUT-RETURN-CODE TO LK-OUT-RETURN-CODE
                        MOVE OLD-OUT-MESSAGE TO LK-OUT-MESSAGE
                    END-IF
                WHEN DFHRESP(PGMIDERR)
                    SET RC-DATABASE-ERROR TO TRUE
-                   MOVE 'COACTVWL program not found' TO LK-OUT-MESSAGE
+                   MOVE 'COACTVWA program not found' TO LK-OUT-MESSAGE
                WHEN OTHER
                    SET RC-DATABASE-ERROR TO TRUE
-                   STRING 'Error calling COACTVWL. RESP='
+                   STRING 'Error calling COACTVWA. RESP='
                           WS-RESP-CD-DISP
                           ' RESP2='
                           WS-REAS-CD-DISP
@@ -2190,236 +2230,283 @@
                    END-STRING
            END-EVALUATE
            .
-       9000-READ-VIA-VWL-EXIT.
+       9000-READ-VIA-VWA-EXIT.
            EXIT
            .
 
-       9100-MAP-FROM-VWL.
-      *    Map data from VWL output to UPL output
+       9100-MAP-FROM-VWA.
+      *    Map data from VWA output to UPL output
            MOVE OLD-OUT-ACCT-DATA TO LK-OUT-ACCT-DATA
            MOVE OLD-OUT-CUST-DATA TO LK-OUT-CUST-DATA
            .
-       9100-MAP-FROM-VWL-EXIT.
+       9100-MAP-FROM-VWA-EXIT.
            EXIT
            .
 
        9500-STORE-OLD-DATA.
       *    Store the OLD commarea for later comparison
-      *    (This is already stored from the VWL call)
+      *    (This is already stored from the VWA call)
            CONTINUE
            .
        9500-STORE-OLD-DATA-EXIT.
            EXIT
            .
 
+******************************************************************
+      * 9600-WRITE-PROCESSING PARAGRAPH
+      ******************************************************************
        9600-WRITE-PROCESSING.
 
+      *    Read the account file for update using SQL
+           MOVE LK-IN-ACCT-ID TO HV-ACCOUNT-ID
 
-      *    Read the account file for update
-           EXEC CICS READ
-                FILE      (LIT-ACCTFILENAME)
-                UPDATE
-                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
-                INTO      (ACCOUNT-RECORD)
-                LENGTH    (LENGTH OF ACCOUNT-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
+      *    CRITICAL FIX: Proper account ID handling for DB2
+           MOVE SPACES TO HV-ACCOUNT-ID
+           MOVE LK-IN-ACCT-ID TO HV-ACCOUNT-ID
+
+      *     Debug the account ID before DB2 operation
+
+
+           EXEC SQL
+                SELECT ACCT_ID, ACCT_ACTIVE_STATUS, ACCT_CURR_BAL,
+                       ACCT_CREDIT_LIMIT, ACCT_CASH_CREDIT_LIMIT,
+                       ACCT_OPEN_DATE, ACCT_EXPIRAION_DATE,
+                       ACCT_REISSUE_DATE, ACCT_CURR_CYC_CREDIT,
+                       ACCT_CURR_CYC_DEBIT, ACCT_ADDR_ZIP,
+                       ACCT_GROUP_ID
+                INTO :HV-ACCT-ID, :HV-ACCT-STATUS, :HV-ACCT-CURR-BAL,
+                     :HV-ACCT-CREDIT-LMT, :HV-ACCT-CASH-LMT,
+                     :HV-ACCT-OPEN-DT, :HV-ACCT-EXPIRY-DT,
+                     :HV-ACCT-REISSUE-DT, :HV-ACCT-CYC-CREDIT,
+                     :HV-ACCT-CYC-DEBIT, :HV-ACCT-ZIP,
+                     :HV-ACCT-GROUP-ID
+                FROM ACCTDAT
+                WHERE ACCT_ID = :HV-ACCOUNT-ID
            END-EXEC
 
-           MOVE WS-RESP-CD TO ERROR-RESP.
-           MOVE WS-REAS-CD TO ERROR-RESP2.
-
-      *****************************************************************
+      ******************************************************************
       *    Could we lock the account record ?
-      *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+      ******************************************************************
+           IF SQLCODE EQUAL TO 0
               CONTINUE
            ELSE
               SET RC-UPDATE-ERROR                TO TRUE
               SET COULD-NOT-LOCK-ACCT-FOR-UPDATE TO TRUE
-              MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
+              MOVE SQLCODE TO HV-SQLCODE-DISPLAY
+              STRING 'Account lock failed. SQLCODE: '
+                     HV-SQLCODE-DISPLAY
+                     DELIMITED BY SIZE
+                     INTO LK-OUT-MESSAGE
+              END-STRING
               GO TO 9600-WRITE-PROCESSING-EXIT
            END-IF
 
-      *    Read the customer file for update using customer ID from OLD data
-           MOVE OLD-OUT-CUST-ID TO WS-CARD-RID-CUST-ID-X
-           EXEC CICS READ
-                FILE      (LIT-CUSTFILENAME)
-                UPDATE
-                RIDFLD    (WS-CARD-RID-CUST-ID-X)
-                KEYLENGTH (LENGTH OF WS-CARD-RID-CUST-ID-X)
-                INTO      (CUSTOMER-RECORD)
-                LENGTH    (LENGTH OF CUSTOMER-RECORD)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
+      *    Read the customer file for update using OLD data customer ID
+           MOVE OLD-OUT-CUST-ID TO HV-CUSTOMER-ID
+
+           EXEC SQL
+                SELECT CUST_ID, CUST_FIRST_NAME, CUST_MIDDLE_NAME,
+                       CUST_LAST_NAME, CUST_ADDR_LINE_1,
+                       CUST_ADDR_LINE_2, CUST_ADDR_LINE_3,
+                       CUST_ADDR_STATE_CD, CUST_ADDR_COUNTRY_CD,
+                       CUST_ADDR_ZIP, CUST_PHONE_NUM_1,
+                       CUST_PHONE_NUM_2, CUST_SSN,
+                       CUST_GOVT_ISSUED_ID, CUST_DOB_YYYY_MM_DD,
+                       CUST_EFT_ACCOUNT_ID, CUST_PRI_CARD_HOLDER_IND,
+                       CUST_FICO_CREDIT_SCORE
+                INTO :HV-CUST-ID, :HV-CUST-FNAME, :HV-CUST-MNAME,
+                     :HV-CUST-LNAME, :HV-CUST-ADDR1,
+                     :HV-CUST-ADDR2, :HV-CUST-ADDR3,
+                     :HV-CUST-STATE, :HV-CUST-COUNTRY,
+                     :HV-CUST-ZIP, :HV-CUST-PHONE1,
+                     :HV-CUST-PHONE2, :HV-CUST-SSN,
+                     :HV-CUST-GOVT-ID, :HV-CUST-DOB,
+                     :HV-CUST-EFT-ID, :HV-CUST-PRI-HOLDER,
+                     :HV-CUST-FICO
+                FROM CUSTDAT
+                WHERE CUST_ID = :HV-CUSTOMER-ID
            END-EXEC
-      *****************************************************************
+
+      ******************************************************************
       *    Could we lock the customer record ?
-      *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+      ******************************************************************
+           IF SQLCODE EQUAL TO 0
               CONTINUE
            ELSE
               SET RC-UPDATE-ERROR                  TO TRUE
               SET COULD-NOT-LOCK-CUST-FOR-UPDATE  TO TRUE
-              MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
+              MOVE SQLCODE TO HV-SQLCODE-DISPLAY
+              STRING 'Customer lock failed. SQLCODE: '
+                     HV-SQLCODE-DISPLAY
+                     DELIMITED BY SIZE
+                     INTO LK-OUT-MESSAGE
+              END-STRING
               GO TO 9600-WRITE-PROCESSING-EXIT
            END-IF
 
-      *****************************************************************
+      ******************************************************************
       *    Did someone change the record while we were out ?
-      *    Re-read via VWL and compare with OLD data
-      *****************************************************************
+      ******************************************************************
            PERFORM 9650-CHECK-RECORD-CHANGED
               THRU 9650-CHECK-RECORD-CHANGED-EXIT
 
            IF DATA-WAS-CHANGED-BEFORE-UPDATE
               SET RC-UPDATE-ERROR TO TRUE
-              MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
+              MOVE 'Record changed by another user' TO LK-OUT-MESSAGE
               GO TO 9600-WRITE-PROCESSING-EXIT
            END-IF
 
-      *****************************************************************
-      * Prepare the update
-      *****************************************************************
-           INITIALIZE ACCT-UPDATE-RECORD
       ******************************************************************
-      *    Account Master data
+      * Prepare and execute account update
       ******************************************************************
-           MOVE ACCT-ID TO ACCT-UPDATE-ID
-      * Active Status
-           MOVE LK-IN-ACCT-ACTIVE-STATUS TO ACCT-UPDATE-ACTIVE-STATUS
+           MOVE LK-IN-ACCT-ACTIVE-STATUS TO HV-ACCT-STATUS
+           MOVE LK-IN-ACCT-CREDIT-LIMIT  TO HV-ACCT-CREDIT-LMT
+           MOVE LK-IN-ACCT-CASH-LIMIT    TO HV-ACCT-CASH-LMT
+           MOVE LK-IN-ACCT-CURR-BAL      TO HV-ACCT-CURR-BAL
+           MOVE LK-IN-ACCT-CURR-CYC-CREDIT TO HV-ACCT-CYC-CREDIT
+           MOVE LK-IN-ACCT-CURR-CYC-DEBIT TO HV-ACCT-CYC-DEBIT
 
-           MOVE LK-IN-ACCT-CREDIT-LIMIT    TO ACCT-UPDATE-CREDIT-LIMIT
-           MOVE LK-IN-ACCT-CASH-LIMIT
-               TO ACCT-UPDATE-CASH-CREDIT-LIMIT
-           MOVE LK-IN-ACCT-CURR-BAL        TO ACCT-UPDATE-CURR-BAL
-           MOVE LK-IN-ACCT-CURR-CYC-CREDIT
-            TO ACCT-UPDATE-CURR-CYC-CREDIT
-           MOVE LK-IN-ACCT-CURR-CYC-DEBIT  TO ACCT-UPDATE-CURR-CYC-DEBIT
-
-      * Open date
            STRING LK-IN-ACCT-OPEN-YEAR
                   '-'
                   LK-IN-ACCT-OPEN-MON
                   '-'
                   LK-IN-ACCT-OPEN-DAY
-           DELIMITED BY SIZE
-                                       INTO ACCT-UPDATE-OPEN-DATE
-      * Expiry date
+           DELIMITED BY SIZE INTO HV-ACCT-OPEN-DT
+
            STRING LK-IN-ACCT-EXP-YEAR
                   '-'
                   LK-IN-ACCT-EXP-MON
                   '-'
                   LK-IN-ACCT-EXP-DAY
-           DELIMITED BY SIZE
-                                       INTO ACCT-UPDATE-EXPIRAION-DATE
+           DELIMITED BY SIZE INTO HV-ACCT-EXPIRY-DT
 
-      * Reissue date
            STRING LK-IN-ACCT-REISSUE-YEAR
                   '-'
                   LK-IN-ACCT-REISSUE-MON
                   '-'
                   LK-IN-ACCT-REISSUE-DAY
-           DELIMITED BY SIZE
-                                       INTO ACCT-UPDATE-REISSUE-DATE
-      * Account Group
-           MOVE LK-IN-ACCT-GROUP-ID        TO ACCT-UPDATE-GROUP-ID
+           DELIMITED BY SIZE INTO HV-ACCT-REISSUE-DT
+
+           MOVE LK-IN-ACCT-GROUP-ID TO HV-ACCT-GROUP-ID
+
+           EXEC SQL
+                UPDATE ACCTDAT
+                SET ACCT_ACTIVE_STATUS = :HV-ACCT-STATUS,
+                    ACCT_CURR_BAL = :HV-ACCT-CURR-BAL,
+                    ACCT_CREDIT_LIMIT = :HV-ACCT-CREDIT-LMT,
+                    ACCT_CASH_CREDIT_LIMIT = :HV-ACCT-CASH-LMT,
+                    ACCT_OPEN_DATE = :HV-ACCT-OPEN-DT,
+                    ACCT_EXPIRAION_DATE = :HV-ACCT-EXPIRY-DT,
+                    ACCT_REISSUE_DATE = :HV-ACCT-REISSUE-DT,
+                    ACCT_CURR_CYC_CREDIT = :HV-ACCT-CYC-CREDIT,
+                    ACCT_CURR_CYC_DEBIT = :HV-ACCT-CYC-DEBIT,
+                    ACCT_GROUP_ID = :HV-ACCT-GROUP-ID
+                WHERE ACCT_ID = :HV-ACCOUNT-ID
+           END-EXEC
 
       ******************************************************************
-      *    Customer data
+      * Did account update succeed ?
       ******************************************************************
-           INITIALIZE CUST-UPDATE-RECORD
+           IF SQLCODE EQUAL TO 0
+             CONTINUE
+           ELSE
+             SET RC-UPDATE-ERROR TO TRUE
+             SET LOCKED-BUT-UPDATE-FAILED TO TRUE
+             MOVE SQLCODE TO HV-SQLCODE-DISPLAY
+             STRING 'Account update failed. SQLCODE: '
+                    HV-SQLCODE-DISPLAY
+                    DELIMITED BY SIZE
+                    INTO LK-OUT-MESSAGE
+             END-STRING
+             GO TO 9600-WRITE-PROCESSING-EXIT
+           END-IF
 
-           MOVE  OLD-OUT-CUST-ID         TO CUST-UPDATE-ID
-           MOVE  LK-IN-CUST-FIRST-NAME     TO CUST-UPDATE-FIRST-NAME
-           MOVE  LK-IN-CUST-MIDDLE-NAME    TO CUST-UPDATE-MIDDLE-NAME
-           MOVE  LK-IN-CUST-LAST-NAME      TO CUST-UPDATE-LAST-NAME
-           MOVE  LK-IN-CUST-ADDR-LINE-1    TO CUST-UPDATE-ADDR-LINE-1
-           MOVE  LK-IN-CUST-ADDR-LINE-2    TO CUST-UPDATE-ADDR-LINE-2
-           MOVE  LK-IN-CUST-ADDR-LINE-3    TO CUST-UPDATE-ADDR-LINE-3
-           MOVE  LK-IN-CUST-ADDR-STATE-CD  TO CUST-UPDATE-ADDR-STATE-CD
-           MOVE  LK-IN-CUST-ADDR-COUNTRY-CD
-                                        TO CUST-UPDATE-ADDR-COUNTRY-CD
-           MOVE  LK-IN-CUST-ADDR-ZIP       TO CUST-UPDATE-ADDR-ZIP
+      ******************************************************************
+      * Prepare and execute customer update
+      ******************************************************************
+           MOVE OLD-OUT-CUST-ID TO HV-CUST-ID
+           MOVE LK-IN-CUST-FIRST-NAME TO HV-CUST-FNAME
+           MOVE LK-IN-CUST-MIDDLE-NAME TO HV-CUST-MNAME
+           MOVE LK-IN-CUST-LAST-NAME TO HV-CUST-LNAME
+           MOVE LK-IN-CUST-ADDR-LINE-1 TO HV-CUST-ADDR1
+           MOVE LK-IN-CUST-ADDR-LINE-2 TO HV-CUST-ADDR2
+           MOVE LK-IN-CUST-ADDR-LINE-3 TO HV-CUST-ADDR3
+           MOVE LK-IN-CUST-ADDR-STATE-CD TO HV-CUST-STATE
+           MOVE LK-IN-CUST-ADDR-COUNTRY-CD TO HV-CUST-COUNTRY
+           MOVE LK-IN-CUST-ADDR-ZIP TO HV-CUST-ZIP
 
-           STRING '(',
-                  LK-IN-CUST-PHONE-1A,
-                  ')',
-                  LK-IN-CUST-PHONE-1B,
-                  '-',
+           STRING '('
+                  LK-IN-CUST-PHONE-1A
+                  ')'
+                  LK-IN-CUST-PHONE-1B
+                  '-'
                   LK-IN-CUST-PHONE-1C
-           DELIMITED BY SIZE    INTO CUST-UPDATE-PHONE-NUM-1
+           DELIMITED BY SIZE INTO HV-CUST-PHONE1
 
-           STRING '(',
-                  LK-IN-CUST-PHONE-2A,
-                  ')',
-                  LK-IN-CUST-PHONE-2B,
-                  '-',
+           STRING '('
+                  LK-IN-CUST-PHONE-2A
+                  ')'
+                  LK-IN-CUST-PHONE-2B
+                  '-'
                   LK-IN-CUST-PHONE-2C
-           DELIMITED BY SIZE    INTO CUST-UPDATE-PHONE-NUM-2
+           DELIMITED BY SIZE INTO HV-CUST-PHONE2
 
-           STRING LK-IN-CUST-SSN-1
-                  LK-IN-CUST-SSN-2
-                  LK-IN-CUST-SSN-3
-           DELIMITED BY SIZE INTO CUST-UPDATE-SSN
-           MOVE  LK-IN-CUST-GOVT-ISSUED-ID TO CUST-UPDATE-GOVT-ISSUED-ID
+           MOVE LK-IN-CUST-SSN-1 TO WS-SSN-PART1
+           MOVE LK-IN-CUST-SSN-2 TO WS-SSN-PART2
+           MOVE LK-IN-CUST-SSN-3 TO WS-SSN-PART3
+
+           MOVE WS-TEMP-SSN-NUMERIC TO HV-CUST-SSN
+
+
+           MOVE LK-IN-CUST-GOVT-ISSUED-ID TO HV-CUST-GOVT-ID
 
            STRING LK-IN-CUST-DOB-YEAR
                   '-'
                   LK-IN-CUST-DOB-MON
                   '-'
                   LK-IN-CUST-DOB-DAY
-           DELIMITED BY SIZE           INTO CUST-UPDATE-DOB-YYYY-MM-DD
+           DELIMITED BY SIZE INTO HV-CUST-DOB
 
-           MOVE LK-IN-CUST-EFT-ACCOUNT-ID
-                                         TO CUST-UPDATE-EFT-ACCOUNT-ID
-           MOVE LK-IN-CUST-PRI-HOLDER-IND
-                                         TO CUST-UPDATE-PRI-CARD-IND
-           MOVE LK-IN-CUST-FICO-SCORE TO
-                                   CUST-UPDATE-FICO-CREDIT-SCORE
+           MOVE LK-IN-CUST-EFT-ACCOUNT-ID TO HV-CUST-EFT-ID
+           MOVE LK-IN-CUST-PRI-HOLDER-IND TO HV-CUST-PRI-HOLDER
+           MOVE LK-IN-CUST-FICO-SCORE TO HV-CUST-FICO
 
-      *****************************************************************
-      * Update account *
-      *****************************************************************
-           EXEC CICS
-                REWRITE FILE(LIT-ACCTFILENAME)
-                        FROM(ACCT-UPDATE-RECORD)
-                        LENGTH(LENGTH OF ACCT-UPDATE-RECORD)
-                        RESP      (WS-RESP-CD)
-                        RESP2     (WS-REAS-CD)
-           END-EXEC.
-      *
-      *****************************************************************
-      * Did account update succeed ?  *
-      *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
+           EXEC SQL
+                UPDATE CUSTDAT
+                SET CUST_FIRST_NAME = :HV-CUST-FNAME,
+                    CUST_MIDDLE_NAME = :HV-CUST-MNAME,
+                    CUST_LAST_NAME = :HV-CUST-LNAME,
+                    CUST_ADDR_LINE_1 = :HV-CUST-ADDR1,
+                    CUST_ADDR_LINE_2 = :HV-CUST-ADDR2,
+                    CUST_ADDR_LINE_3 = :HV-CUST-ADDR3,
+                    CUST_ADDR_STATE_CD = :HV-CUST-STATE,
+                    CUST_ADDR_COUNTRY_CD = :HV-CUST-COUNTRY,
+                    CUST_ADDR_ZIP = :HV-CUST-ZIP,
+                    CUST_PHONE_NUM_1 = :HV-CUST-PHONE1,
+                    CUST_PHONE_NUM_2 = :HV-CUST-PHONE2,
+                    CUST_SSN = :HV-CUST-SSN,
+                    CUST_GOVT_ISSUED_ID = :HV-CUST-GOVT-ID,
+                    CUST_DOB_YYYY_MM_DD = :HV-CUST-DOB,
+                    CUST_EFT_ACCOUNT_ID = :HV-CUST-EFT-ID,
+                    CUST_PRI_CARD_HOLDER_IND = :HV-CUST-PRI-HOLDER,
+                    CUST_FICO_CREDIT_SCORE = :HV-CUST-FICO
+                WHERE CUST_ID = :HV-CUST-ID
+           END-EXEC
+
+      ******************************************************************
+      * Did customer update succeed ?
+      ******************************************************************
+           IF SQLCODE EQUAL TO 0
              CONTINUE
            ELSE
              SET RC-UPDATE-ERROR TO TRUE
              SET LOCKED-BUT-UPDATE-FAILED TO TRUE
-             MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
-             GO TO 9600-WRITE-PROCESSING-EXIT
-           END-IF
-      *****************************************************************
-      * Update customer *
-      *****************************************************************
-           EXEC CICS
-                        REWRITE FILE(LIT-CUSTFILENAME)
-                        FROM(CUST-UPDATE-RECORD)
-                        LENGTH(LENGTH OF CUST-UPDATE-RECORD)
-                        RESP      (WS-RESP-CD)
-                        RESP2     (WS-REAS-CD)
-           END-EXEC.
-      *****************************************************************
-      * Did customer update succeed ? *
-      *****************************************************************
-           IF WS-RESP-CD EQUAL TO DFHRESP(NORMAL)
-             CONTINUE
-           ELSE
-             SET RC-UPDATE-ERROR TO TRUE
-             SET LOCKED-BUT-UPDATE-FAILED TO TRUE
-             MOVE WS-RETURN-MSG TO LK-OUT-MESSAGE
+             MOVE SQLCODE TO HV-SQLCODE-DISPLAY
+             STRING 'Customer update failed. SQLCODE: '
+                    HV-SQLCODE-DISPLAY
+                    DELIMITED BY SIZE
+                    INTO LK-OUT-MESSAGE
+             END-STRING
              EXEC CICS
                 SYNCPOINT ROLLBACK
              END-EXEC
@@ -2430,8 +2517,11 @@
            EXIT
            .
 
+      ******************************************************************
+      * 9650-CHECK-RECORD-CHANGED PARAGRAPH
+      ******************************************************************
        9650-CHECK-RECORD-CHANGED.
-      *    Re-read the data via VWL to check if someone else changed it
+      *    Re-read the data via VWA to check if someone else changed it
            INITIALIZE WS-EDIT-ALPHANUM-ONLY
 
       *    Save current OLD data for comparison
@@ -2439,11 +2529,10 @@
            MOVE OLD-OUT-ACCT-CREDIT-LIMIT TO WS-TEMP-CREDIT-LIMIT
            MOVE OLD-OUT-CUST-FIRST-NAME TO WS-EDIT-ALPHANUM-ONLY(1:25)
 
-      *    Re-read via VWL
+      *    Re-read via VWA
            MOVE LK-IN-ACCT-ID TO OLD-IN-ACCT-ID
-
            EXEC CICS LINK
-                PROGRAM(LIT-VWL-PROGRAM)
+                PROGRAM(LIT-VWA-PROGRAM)
                 COMMAREA(OLD-ACCOUNT-COMMAREA)
                 LENGTH(LENGTH OF OLD-ACCOUNT-COMMAREA)
                 RESP(WS-RESP-CD)
@@ -2466,12 +2555,10 @@
               WS-EDIT-ALPHANUM-ONLY(1:25)
               SET DATA-WAS-CHANGED-BEFORE-UPDATE TO TRUE
            END-IF
-
            .
        9650-CHECK-RECORD-CHANGED-EXIT.
            EXIT
            .
-
       ******************************************************************
       * Common Date Routines
       ******************************************************************

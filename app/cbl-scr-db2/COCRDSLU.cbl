@@ -1,8 +1,8 @@
-      ****************************************************************
-      * Program:     COCRDSLS.CBL                                     *
+****************************************************************
+      * Program:     COCRDSLU.CBL                                     *
       * Layer:       Screen logic (UI only)                          *
       * Function:    Accept and process credit card detail request    *
-      *              Screen interactions only - calls COCRDSLL for DB *
+      *              Screen interactions only*
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -22,7 +22,7 @@
 
        IDENTIFICATION DIVISION.
        PROGRAM-ID.
-           COCRDSLS.
+           COCRDSLU.
        DATE-WRITTEN.
            April 2022.
        DATE-COMPILED.
@@ -144,7 +144,7 @@
           05 LIT-THISPGM                           PIC X(8)
                                                    VALUE 'COCRDSLU'.
           05 LIT-RPCPGM                           PIC X(8)
-                                                  VALUE 'COCRDSLL'.
+                                                  VALUE 'COCRDSLA'.
           05 LIT-THISTRANID                        PIC X(4)
                                                    VALUE 'AAS6'.
           05 LIT-THISMAPSET                        PIC X(8)
@@ -439,8 +439,7 @@
       *                      CALL-RPC-PROGRAM
       *----------------------------------------------------------------*
        CALL-RPC-PROGRAM.
-           DISPLAY 'WS-RPC-PROGRAM: ' LIT-RPCPGM
-           DISPLAY 'TAGAALIN: .' WS-RPC-COMMAREA
+
            EXEC CICS LINK
                 PROGRAM(LIT-RPCPGM)
                 COMMAREA(WS-RPC-COMMAREA)
@@ -451,15 +450,12 @@
            MOVE WS-RESP-CD TO WS-RESP-DISP
            MOVE WS-REAS-CD TO WS-REAS-DISP.
 
-           DISPLAY 'WS-RESP-DISP: ' WS-RESP-DISP
-           DISPLAY 'WS-REAS-DISP: ' WS-REAS-DISP.
-           DISPLAY 'COMMAREA LENGTH: ' LENGTH OF WS-RPC-COMMAREA.
 
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)
                    CONTINUE
                WHEN DFHRESP(PGMIDERR)
-                   MOVE 'COCRDSLL program not found' TO WS-RETURN-MSG
+                   MOVE 'COCRDSLA program not found' TO WS-RETURN-MSG
                WHEN OTHER
                    SET ERR-FLG-ON TO TRUE
                    MOVE 'Error calling RPC program' TO WS-RETURN-MSG
