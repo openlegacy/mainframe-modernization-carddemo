@@ -16,20 +16,20 @@ This fork adapts and extends the application to explore multiple architectural p
 ## Program & Dataset Structure
 | Program Type     | Naming Convention | Folder/Location     | Description                                      |
 |------------------|-------------------|----------------------|--------------------------------------------------|
-| Screens          | `COxxxxxS`        | `cbl-src`            | CICS screen logic                                |
+| Screens          | `COxxxxxS`        | `cbl-scr`            | CICS screen logic                                |
 | RPC (VSAM)       | `COxxxxxL`        | `cbl-rpc`            | Business logic using VSAM                        |
 | DB2 Direct       | `COxxxxxD`        | `cbl-db2`            | Programs that access DB2 directly                |
-| Screens (DB2)    | `COxxxxxU`        | `cbl-src-db2`        | CICS screens that call DB2-enabled RPC programs  |
+| Screens (DB2)    | `COxxxxxU`        | `cbl-scr-db2`        | CICS screens that call DB2-enabled RPC programs  |
 | RPC (DB2)        | `COxxxxxA`        | `cbl-rpc-db2`        | RPC programs using DB2                           |
 | Copybooks        | -                 | `app/cpy`            | Copybooks remain under `app/cpy`             |
 ## DB2 Schema
 * All DB2 tables are defined under the schema: `ALAINL` in the programs, these must be changed to `<your-schema>`
 ## Source Location
 - COBOL source code (screen, RPC, DB2) is organized by function in:
-  - `cbl-src`  
+  - `cbl-scr`  
   - `cbl-rpc`  
   - `cbl-db2`  
-  - `cbl-src-db2`  
+  - `cbl-scr-db2`  
   - `cbl-rpc-db2`  
 - Copybooks remain under: `app/cpy`
 
