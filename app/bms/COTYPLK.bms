@@ -1,0 +1,107 @@
+******************************************************************
+*    CardDemo - Type Code Lookup Overlay
+***********************************************************************
+* Copyright Amazon.com, Inc. or its affiliates.
+* All Rights Reserved.
+*
+* Licensed under the Apache License, Version 2.0 (the "License").
+* You may not use this file except in compliance with the License.
+* You may obtain a copy of the License at
+*
+*    http://www.apache.org/licenses/LICENSE-2.0
+*
+* Unless required by applicable law or agreed to in writing,
+* software distributed under the License is distributed on an
+* "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+* either express or implied. See the License for the specific
+* language governing permissions and limitations under the License
+******************************************************************
+COTYPLK DFHMSD CTRL=(FREEKB),                                          -
+               EXTATT=YES,                                             -
+               LANG=COBOL,                                             -
+               MODE=INOUT,                                             -
+               STORAGE=AUTO,                                           -
+               TIOAPFX=YES,                                            -
+               TYPE=&&SYSPARM
+TYPELK  DFHMDI COLUMN=25,                                              -
+               LINE=8,                                                 -
+               SIZE=(14,30)
+        DFHMDF ATTRB=(ASKIP,BRT),                                      -
+               COLOR=YELLOW,                                           -
+               LENGTH=28,                                              -
+               POS=(1,2),                                              -
+               INITIAL='    Type Code Lookup'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=NEUTRAL,                                          -
+               LENGTH=28,                                              -
+               POS=(2,2),                                              -
+               INITIAL='============================'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(3,2),                                              -
+               INITIAL='1. DB - Debit'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(4,2),                                              -
+               INITIAL='2. CR - Credit'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(5,2),                                              -
+               INITIAL='3. RF - Refund'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(6,2),                                              -
+               INITIAL='4. AD - Adjustment'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(7,2),                                              -
+               INITIAL='5. FE - Fee'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(8,2),                                              -
+               INITIAL='6. CH - Chargeback'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(9,2),                                              -
+               INITIAL='7. AU - Authorization'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(10,2),                                             -
+               INITIAL='8. VO - Void'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=28,                                              -
+               POS=(11,2),                                             -
+               INITIAL='9. RT - Retail/Sales'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=NEUTRAL,                                          -
+               LENGTH=28,                                              -
+               POS=(12,2),                                             -
+               INITIAL='============================'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=GREEN,                                            -
+               LENGTH=18,                                              -
+               POS=(13,2),                                             -
+               INITIAL='Enter selection:'
+TYPESEL DFHMDF ATTRB=(FSET,IC,NORM,UNPROT),                            -
+               COLOR=GREEN,                                            -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=1,                                               -
+               POS=(13,21)
+        DFHMDF LENGTH=0,                                               -
+               POS=(13,23)
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=YELLOW,                                           -
+               LENGTH=28,                                              -
+               POS=(14,2),                                             -
+               INITIAL='ENTER=Select F3=Cancel'
+        DFHMSD TYPE=FINAL
+        END
