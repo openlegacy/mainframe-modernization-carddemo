@@ -164,9 +164,7 @@
                        WHEN DFHENTER
                            PERFORM PROCESS-ENTER-KEY
                        WHEN DFHPF1
-                           PERFORM SHOW-TYPE-LOOKUP
-                       WHEN DFHPF2
-                           PERFORM SHOW-CATEGORY-LOOKUP
+                           PERFORM PROCESS-F1-LOOKUP
                        WHEN DFHPF3
                            MOVE 'COMEN01D' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-PREV-SCREEN
@@ -236,12 +234,30 @@
            MOVE WS-PGMNAME TO CDEMO-FROM-PROGRAM
            PERFORM RETURN-TO-PREV-SCREEN.
 
+       PROCESS-F1-LOOKUP.
+           EVALUATE EIBCPOSN
+               WHEN 734 THRU 735
+                   PERFORM SHOW-TYPE-LOOKUP
+               WHEN 767 THRU 770
+                   PERFORM SHOW-CATEGORY-LOOKUP
+               WHEN OTHER
+                   MOVE 'F1 only available on Type or Category fields'
+                        TO ERRMSGO OF COTRN2AO
+                   EXEC CICS SEND
+                             MAP('COTRN2A')
+                             MAPSET('COTRN2A')
+                             FROM(COTRN2AO)
+                             DATAONLY
+                             CURSOR(EIBCPOSN)
+                   END-EXEC
+           END-EVALUATE.
+
       *----------------------------------------------------------------*
-      *                      SHOW-TYPE-LOOKUP
+      *                      SHOW-TYPE-LOOKUP (UPDATED)
       *----------------------------------------------------------------*
        SHOW-TYPE-LOOKUP.
            MOVE LOW-VALUES TO TYPELKO
-           MOVE -1 TO TYPESELL OF TYPELKI
+           MOVE -1 TO TYPE1L OF TYPELKI
 
            EXEC CICS SEND
                      MAP('TYPELK')
@@ -265,11 +281,11 @@
            PERFORM SEND-TRNADD-SCREEN.
 
       *----------------------------------------------------------------*
-      *                      SHOW-CATEGORY-LOOKUP
+      *                      SHOW-CATEGORY-LOOKUP (UPDATED)
       *----------------------------------------------------------------*
        SHOW-CATEGORY-LOOKUP.
            MOVE LOW-VALUES TO CATEGLKO
-           MOVE -1 TO CATSELL OF CATEGLKI
+           MOVE -1 TO CAT1L OF CATEGLKI
 
            EXEC CICS SEND
                      MAP('CATEGLK')
@@ -296,24 +312,26 @@
       *                      PROCESS-TYPE-SELECTION
       *----------------------------------------------------------------*
        PROCESS-TYPE-SELECTION.
-           EVALUATE TYPESELI OF TYPELKI
-               WHEN '1'
+      *    Need to determine which field was entered
+      *    Check each TYPE field to see which one has data
+           EVALUATE TRUE
+               WHEN TYPE1I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'DB' TO TTYPCDI OF COTRN2AI
-               WHEN '2'
+               WHEN TYPE2I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'CR' TO TTYPCDI OF COTRN2AI
-               WHEN '3'
+               WHEN TYPE3I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'RF' TO TTYPCDI OF COTRN2AI
-               WHEN '4'
+               WHEN TYPE4I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'AD' TO TTYPCDI OF COTRN2AI
-               WHEN '5'
+               WHEN TYPE5I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'FE' TO TTYPCDI OF COTRN2AI
-               WHEN '6'
+               WHEN TYPE6I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'CH' TO TTYPCDI OF COTRN2AI
-               WHEN '7'
+               WHEN TYPE7I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'AU' TO TTYPCDI OF COTRN2AI
-               WHEN '8'
+               WHEN TYPE8I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'VO' TO TTYPCDI OF COTRN2AI
-               WHEN '9'
+               WHEN TYPE9I OF TYPELKI NOT = SPACES AND LOW-VALUES
                    MOVE 'RT' TO TTYPCDI OF COTRN2AI
                WHEN OTHER
                    MOVE 'Invalid selection. Please try again.'
@@ -324,41 +342,34 @@
       *                      PROCESS-CATEGORY-SELECTION
       *----------------------------------------------------------------*
        PROCESS-CATEGORY-SELECTION.
-           EVALUATE CATSELI OF CATEGLKI
-               WHEN '1 '
-               WHEN '01'
+      *    Need to determine which field was entered
+      *    Check each CAT field to see which one has data
+           EVALUATE TRUE
+               WHEN CAT1I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5699 TO TCATCDI OF COTRN2AI
-               WHEN '2 '
-               WHEN '02'
+               WHEN CAT2I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5812 TO TCATCDI OF COTRN2AI
-               WHEN '3 '
-               WHEN '03'
+               WHEN CAT3I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5541 TO TCATCDI OF COTRN2AI
-               WHEN '4 '
-               WHEN '04'
+               WHEN CAT4I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5411 TO TCATCDI OF COTRN2AI
-               WHEN '5 '
-               WHEN '05'
+               WHEN CAT5I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5311 TO TCATCDI OF COTRN2AI
-               WHEN '6 '
-               WHEN '06'
+               WHEN CAT6I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5912 TO TCATCDI OF COTRN2AI
-               WHEN '7 '
-               WHEN '07'
+               WHEN CAT7I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 4900 TO TCATCDI OF COTRN2AI
-               WHEN '8 '
-               WHEN '08'
+               WHEN CAT8I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 4814 TO TCATCDI OF COTRN2AI
-               WHEN '9 '
-               WHEN '09'
+               WHEN CAT9I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 4511 TO TCATCDI OF COTRN2AI
-               WHEN '10'
+               WHEN CAT10I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 7011 TO TCATCDI OF COTRN2AI
-               WHEN '11'
+               WHEN CAT11I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 7832 TO TCATCDI OF COTRN2AI
-               WHEN '12'
+               WHEN CAT12I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5691 TO TCATCDI OF COTRN2AI
-               WHEN '13'
+               WHEN CAT13I OF CATEGLKI NOT = SPACES AND LOW-VALUES
                    MOVE 5732 TO TCATCDI OF COTRN2AI
                WHEN OTHER
                    MOVE 'Invalid selection. Please try again.'
@@ -428,7 +439,7 @@
                    MOVE -1       TO TTYPCDL OF COTRN2AI
                WHEN TCATCDI OF COTRN2AI = SPACES OR LOW-VALUES
                    MOVE 'Y'     TO WS-ERR-FLG
-                  MOVE 'Category CD can NOT be empty. Press F2 for list'
+                  MOVE 'Category CD can NOT be empty. Press F1 for list'
                                 TO WS-MESSAGE
                    MOVE -1       TO TCATCDL OF COTRN2AI
                WHEN TRNSRCI OF COTRN2AI = SPACES OR LOW-VALUES

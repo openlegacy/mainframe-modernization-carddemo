@@ -1,16 +1,159 @@
        01  CATEGLKI.
            02  FILLER PIC X(12).
-           02  CATSELL    COMP  PIC  S9(4).
-           02  CATSELF    PICTURE X.
-           02  FILLER REDEFINES CATSELF.
-             03 CATSELA    PICTURE X.
+           02  CAT1L    COMP  PIC  S9(4).
+           02  CAT1F    PICTURE X.
+           02  FILLER REDEFINES CAT1F.
+             03 CAT1A    PICTURE X.
            02  FILLER   PICTURE X(4).
-           02  CATSELI  PIC X(4).
+           02  CAT1I  PIC X(1).
+           02  CAT2L    COMP  PIC  S9(4).
+           02  CAT2F    PICTURE X.
+           02  FILLER REDEFINES CAT2F.
+             03 CAT2A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT2I  PIC X(1).
+           02  CAT3L    COMP  PIC  S9(4).
+           02  CAT3F    PICTURE X.
+           02  FILLER REDEFINES CAT3F.
+             03 CAT3A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT3I  PIC X(1).
+           02  CAT4L    COMP  PIC  S9(4).
+           02  CAT4F    PICTURE X.
+           02  FILLER REDEFINES CAT4F.
+             03 CAT4A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT4I  PIC X(1).
+           02  CAT5L    COMP  PIC  S9(4).
+           02  CAT5F    PICTURE X.
+           02  FILLER REDEFINES CAT5F.
+             03 CAT5A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT5I  PIC X(1).
+           02  CAT6L    COMP  PIC  S9(4).
+           02  CAT6F    PICTURE X.
+           02  FILLER REDEFINES CAT6F.
+             03 CAT6A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT6I  PIC X(1).
+           02  CAT7L    COMP  PIC  S9(4).
+           02  CAT7F    PICTURE X.
+           02  FILLER REDEFINES CAT7F.
+             03 CAT7A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT7I  PIC X(1).
+           02  CAT8L    COMP  PIC  S9(4).
+           02  CAT8F    PICTURE X.
+           02  FILLER REDEFINES CAT8F.
+             03 CAT8A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT8I  PIC X(1).
+           02  CAT9L    COMP  PIC  S9(4).
+           02  CAT9F    PICTURE X.
+           02  FILLER REDEFINES CAT9F.
+             03 CAT9A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT9I  PIC X(1).
+           02  CAT10L    COMP  PIC  S9(4).
+           02  CAT10F    PICTURE X.
+           02  FILLER REDEFINES CAT10F.
+             03 CAT10A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT10I  PIC X(1).
+           02  CAT11L    COMP  PIC  S9(4).
+           02  CAT11F    PICTURE X.
+           02  FILLER REDEFINES CAT11F.
+             03 CAT11A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT11I  PIC X(1).
+           02  CAT12L    COMP  PIC  S9(4).
+           02  CAT12F    PICTURE X.
+           02  FILLER REDEFINES CAT12F.
+             03 CAT12A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT12I  PIC X(1).
+           02  CAT13L    COMP  PIC  S9(4).
+           02  CAT13F    PICTURE X.
+           02  FILLER REDEFINES CAT13F.
+             03 CAT13A    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CAT13I  PIC X(1).
        01  CATEGLKO REDEFINES CATEGLKI.
            02  FILLER PIC X(12).
+           02  CAT4C     PICTURE X.
+           02  CAT4P     PICTURE X.
+           02  CAT4H     PICTURE X.
+           02  CAT4V     PICTURE X.
+           02  CAT4O     PIC X(1).
            02  FILLER PICTURE X(3).
-           02  CATSELC    PICTURE X.
-           02  CATSELP    PICTURE X.
-           02  CATSELH    PICTURE X.
-           02  CATSELV    PICTURE X.
-           02  CATSELO  PIC X(4).
+           02  CAT5C     PICTURE X.
+           02  CAT5P     PICTURE X.
+           02  CAT5H     PICTURE X.
+           02  CAT5V     PICTURE X.
+           02  CAT5O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT6C     PICTURE X.
+           02  CAT6P     PICTURE X.
+           02  CAT6H     PICTURE X.
+           02  CAT6V     PICTURE X.
+           02  CAT6O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT7C     PICTURE X.
+           02  CAT7P     PICTURE X.
+           02  CAT7H     PICTURE X.
+           02  CAT7V     PICTURE X.
+           02  CAT7O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT8C     PICTURE X.
+           02  CAT8P     PICTURE X.
+           02  CAT8H     PICTURE X.
+           02  CAT8V     PICTURE X.
+           02  CAT8O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT9C     PICTURE X.
+           02  CAT9P     PICTURE X.
+           02  CAT9H     PICTURE X.
+           02  CAT9V     PICTURE X.
+           02  CAT9O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT10C    PICTURE X.
+           02  CAT10P    PICTURE X.
+           02  CAT10H    PICTURE X.
+           02  CAT10V    PICTURE X.
+           02  CAT10O    PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT11C    PICTURE X.
+           02  CAT11P    PICTURE X.
+           02  CAT11H    PICTURE X.
+           02  CAT11V    PICTURE X.
+           02  CAT11O    PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT12C    PICTURE X.
+           02  CAT12P    PICTURE X.
+           02  CAT12H    PICTURE X.
+           02  CAT12V    PICTURE X.
+           02  CAT12O    PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT13C    PICTURE X.
+           02  CAT13P    PICTURE X.
+           02  CAT13H    PICTURE X.
+           02  CAT13V    PICTURE X.
+           02  CAT13O    PIC X(1).
+           02  CAT1C     PICTURE X.
+           02  CAT1P     PICTURE X.
+           02  CAT1H     PICTURE X.
+           02  CAT1V     PICTURE X.
+           02  CAT1O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT2C     PICTURE X.
+           02  CAT2P     PICTURE X.
+           02  CAT2H     PICTURE X.
+           02  CAT2V     PICTURE X.
+           02  CAT2O     PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  CAT3C     PICTURE X.
+           02  CAT3P     PICTURE X.
+           02  CAT3H     PICTURE X.
+           02  CAT3V     PICTURE X.
+           02  CAT3O     PIC X(1).
+           02  FILLER PICTURE X(3).
