@@ -13,13 +13,15 @@ This fork adapts and extends the application to explore multiple architectural p
 | Variant | Flow Type              | Initial Transaction | Subsequent Transactions Prefix | Screen Prefix | Logic Prefix | Backend       | Notes                                                                 |
 |---------|------------------------|----------------------|--------------------------------|----------------|---------------|----------------|------------------------------------------------------------------------|
 | AL00    | Screen → RPC           | `AL00`               | `ALSX`                         | `COxxxxxS`     | `COxxxxxL`    | VSAM (RPC)    | Standard CICS-to-RPC flow using VSAM. RPC logic handles persistence.  |
-| AD00    | Screen → DB2           | `AD00`               | `ADSX`                         | `COxxxxxD`     | (None)        | DB2 (Direct)  | CICS programs directly access DB2, no RPC layer. **User Menu Option 8 now open (wizard-style 3 screens + lookups)**. |
-| AA00    | Screen → RPC (with DB2)| `AA00`               | `AASX`                         | `COxxxxxU`     | `COxxxxxA`    | DB2 (via RPC) | RPC layer integrates with DB2.                                        |
+| AD00    | Screen → DB2           | `AD00`               | `ADSX`                         | `COxxxxxD`     | (None)        | DB2 (Direct)  | CICS programs directly access DB2, no RPC layer. User Menu Option 8 now open (wizard-style 3 screens + lookups). |
+| AA00    | Screen → RPC (with DB2)| `AA00`               | `AASX`                         | `COxxxxxU`     | `COxxxxxA`    | DB2 (via RPC) | RPC layer integrates with DB2.  User Menu Option 11 invokes RPC chain                                        |
 
 ### Current Status
 - ✅ **Admin Menu**: All options functional  
-- ✅ **User Menu**: Options 01–05 functional (**and 08 for AD00**)  
+- ✅ **User Menu**: Options 01–05 functional all variants; Option 08 only AD00; Option 11 only AA00 for RPC chain (Cust → Acct → Card → Trans).  
 - ⚠️ `COACTUPS` / `COACTUPU` implement View/Update via RPC-to-RPC  
+- ⚠️ Note: The RPC chain programs `COCUSTMA`->`COACCNTA`->`COCCARDA`->`COTRANSA` temporarily expose the COMMAREA within the CICS region to facilitate inspection of the available API data during execution.
+ 
 
 ## Program & Dataset Structure
 
@@ -266,6 +268,7 @@ INSERT INTO <your-schema>.CUSTDAT VALUES
 INSERT INTO <your-schema>.CUSTDAT VALUES 
     (000000003, 'BOB', 'R', 'JOHNSON', '789 PINE RD', '', 'ELSEWHERE', 'TX', 'USA', '67890', '(555)456-7890', '', 345678901, 'DL345678', '1990-12-05', 'EFT003', 'Y', 720);
 
+
 -- Account data - individual inserts
 INSERT INTO <your-schema>.ACCTDAT VALUES 
     (00000000001, 'Y', 1500.00, 5000.00, 1000.00, '2020-01-15', '2025-01-15', '2023-01-15', 500.00, 300.00, '12345', 'GOLD');
@@ -274,7 +277,14 @@ INSERT INTO <your-schema>.ACCTDAT VALUES
     (00000000002, 'Y', -250.75, 3000.00, 500.00, '2019-06-20', '2024-06-20', '2022-06-20', 200.00, 450.75, '54321', 'SILVER');
 
 INSERT INTO <your-schema>.ACCTDAT VALUES 
+    (00000000012, 'Y', 1200.00, 4000.00, 800.00, '2021-03-15', '2026-03-15', '2023-03-15', 150.00, 50.00, '54321', 'PLATINUM');
+
+INSERT INTO <your-schema>.ACCTDAT VALUES 
+    (00000000022, 'Y', 950.00, 3500.00, 600.00, '2022-07-10', '2027-07-10', '2024-07-10', 300.00, 100.00, '54321', 'DIAMOND');
+
+INSERT INTO <your-schema>.ACCTDAT VALUES 
     (00000000003, 'N', 0.00, 2000.00, 200.00, '2021-12-05', '2026-12-05', '2024-12-05', 0.00, 0.00, '67890', 'BRONZE');
+
 
 -- Card data - individual inserts
 INSERT INTO <your-schema>.CARDDAT VALUES 
@@ -284,48 +294,63 @@ INSERT INTO <your-schema>.CARDDAT VALUES
     ('4444000000000002', 00000000002, 'Y', 456, 'JANE SMITH', '2026-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
 
 INSERT INTO <your-schema>.CARDDAT VALUES 
+    ('4444000000000032', 00000000012, 'Y', 789, 'JANE SMITH', '2027-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
+
+INSERT INTO <your-schema>.CARDDAT VALUES 
+    ('4444000000000042', 00000000022, 'Y', 234, 'JANE SMITH', '2028-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
+
+INSERT INTO <your-schema>.CARDDAT VALUES 
     ('4444000000000003', 00000000003, 'N', 789, 'BOB R JOHNSON', '2024-03-31', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
+
 
 -- Cross-reference data - individual inserts
 INSERT INTO <your-schema>.CXACAIX VALUES 
     (00000000001, '4444000000000001', 000000001);
 
+-- Jane's cards linked to Jane
 INSERT INTO <your-schema>.CXACAIX VALUES 
     (00000000002, '4444000000000002', 000000002);
+
+INSERT INTO <your-schema>.CXACAIX VALUES 
+    (00000000012, '4444000000000032', 000000002);
+
+INSERT INTO <your-schema>.CXACAIX VALUES 
+    (00000000022, '4444000000000042', 000000002);
 
 INSERT INTO <your-schema>.CXACAIX VALUES 
     (00000000003, '4444000000000003', 000000003);
 
 -- Transaction data - sample inserts (10 essential transactions)
+
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000001', 'DB', 5411, 'POS', 'GROCERY STORE PURCHASE', -125.50, 123456789, 'SUPERMART FOODS', 'NEW YORK', '10001', '4444000000000001', '2024-01-15-10.30.45.123456', '2024-01-15-10.30.47.567890');
+    ('0000000000000001', 'DB', 5411, 'POS', 'GROCERY STORE PURCHASE', -125.50, 123456789, 'SUPERMART FOODS', 'NEW YORK', '10001', '4444000000000002', '2024-01-15-10.30.45.123456', '2024-01-15-10.30.47.567890');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
     ('0000000000000002', 'DB', 5812, 'POS', 'RESTAURANT DINING', -75.25, 987654321, 'BISTRO DOWNTOWN', 'LOS ANGELES', '90210', '4444000000000002', '2024-01-16-12.45.30.234567', '2024-01-16-12.45.32.678901');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000003', 'DB', 5541, 'POS', 'GAS STATION FUEL', -55.89, 555666777, 'SHELL STATION', 'CHICAGO', '60601', '4444000000000001', '2024-01-17-14.20.15.345678', '2024-01-17-14.20.17.789012');
+    ('0000000000000003', 'DB', 5541, 'POS', 'GAS STATION FUEL', -55.89, 555666777, 'SHELL STATION', 'CHICAGO', '60601', '4444000000000002', '2024-01-17-14.20.15.345678', '2024-01-17-14.20.17.789012');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
     ('0000000000000004', 'CR', 0, 'PAYMENT', 'PAYMENT RECEIVED', 500.00, 999888777, 'ONLINE PAYMENT SYSTEM', 'VIRTUAL', '00000', '4444000000000002', '2024-01-18-09.30.10.567890', '2024-01-18-09.30.12.901234');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000005', 'CR', 0, 'TRANSFER', 'BANK TRANSFER CREDIT', 750.00, 888777666, 'FIRST NATIONAL BANK', 'ATLANTA', '30301', '4444000000000001', '2024-01-19-14.20.30.123456', '2024-01-19-14.20.32.567890');
+    ('0000000000000005', 'CR', 0, 'TRANSFER', 'BANK TRANSFER CREDIT', 750.00, 888777666, 'FIRST NATIONAL BANK', 'ATLANTA', '30301', '4444000000000002', '2024-01-19-14.20.30.123456', '2024-01-19-14.20.32.567890');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000006', 'DB', 5311, 'POS', 'DEPARTMENT STORE PURCHASE', -189.99, 111222333, 'MACYS FLAGSHIP', 'MIAMI', '33101', '4444000000000003', '2024-01-20-16.15.20.456789', '2024-01-20-16.15.22.890123');
+    ('0000000000000006', 'DB', 5311, 'POS', 'DEPARTMENT STORE PURCHASE', -189.99, 111222333, 'MACYS FLAGSHIP', 'MIAMI', '33101', '4444000000000002', '2024-01-20-16.15.20.456789', '2024-01-20-16.15.22.890123');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000007', 'AU', 4900, 'ATM', 'AUTHORIZATION HOLD', -200.00, 555666777, 'FIRST NATIONAL BANK', 'CHICAGO', '60601', '4444000000000001', '2024-01-21-15.45.20.234567', '2024-01-21-15.45.22.678901');
+    ('0000000000000007', 'AU', 4900, 'ATM', 'AUTHORIZATION HOLD', -200.00, 555666777, 'FIRST NATIONAL BANK', 'CHICAGO', '60601', '4444000000000002', '2024-01-21-15.45.20.234567', '2024-01-21-15.45.22.678901');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
     ('0000000000000008', 'AU', 5541, 'POS', 'GAS AUTHORIZATION', -80.00, 555666777, 'SHELL STATION', 'CHICAGO', '60601', '4444000000000002', '2024-01-22-16.20.10.345678', '2024-01-22-16.20.12.789012');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000009', 'VO', 5812, 'POS', 'RESTAURANT VOID', 0.00, 987654321, 'BISTRO DOWNTOWN', 'LOS ANGELES', '90210', '4444000000000003', '2024-01-23-19.15.30.567890', '2024-01-23-19.15.32.901234');
+    ('0000000000000009', 'VO', 5812, 'POS', 'RESTAURANT VOID', 0.00, 987654321, 'BISTRO DOWNTOWN', 'LOS ANGELES', '90210', '4444000000000002', '2024-01-23-19.15.30.567890', '2024-01-23-19.15.32.901234');
 
 INSERT INTO <your-schema>.TRANSACT VALUES 
-    ('0000000000000010', 'VO', 7011, 'ONLINE', 'HOTEL VOID', 0.00, 987123456, 'MARRIOTT HOTEL', 'PORTLAND', '97201', '4444000000000001', '2024-01-24-10.45.15.678901', '2024-01-24-10.45.17.012345');
+    ('0000000000000010', 'VO', 7011, 'ONLINE', 'HOTEL VOID', 0.00, 987123456, 'MARRIOTT HOTEL', 'PORTLAND', '97201', '4444000000000002', '2024-01-24-10.45.15.678901', '2024-01-24-10.45.17.012345');
 
 GRANT ALL ON <your-schema>.CARDDAT TO PUBLIC;
 GRANT ALL ON <your-schema>.ACCTDAT TO PUBLIC;
