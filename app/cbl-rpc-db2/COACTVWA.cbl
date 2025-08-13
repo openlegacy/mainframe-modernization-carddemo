@@ -330,6 +330,8 @@
                 INTO :HV-CARD-NUMBER
                 FROM CARDDAT
                 WHERE CARD_ACCT_ID = :HV-ACCOUNT-ID
+                ORDER BY CARD_CREAT_DATE DESC   
+                FETCH FIRST 1 ROW ONLY
            END-EXEC
 
            EVALUATE SQLCODE
