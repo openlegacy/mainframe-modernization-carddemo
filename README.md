@@ -11,17 +11,28 @@ This fork adapts and extends the application to explore multiple architectural p
 ## Overview of Variants
 
 | Variant | Flow Type              | Initial Transaction | Subsequent Transactions Prefix | Screen Prefix | Logic Prefix | Backend       | Notes                                                                 |
-|---------|------------------------|----------------------|--------------------------------|----------------|---------------|----------------|------------------------------------------------------------------------|
-| AL00    | Screen → RPC           | `AL00`               | `ALSX`                         | `COxxxxxS`     | `COxxxxxL`    | VSAM (RPC)    | Standard CICS-to-RPC flow using VSAM. RPC logic handles persistence.  |
-| AD00    | Screen → DB2           | `AD00`               | `ADSX`                         | `COxxxxxD`     | (None)        | DB2 (Direct)  | CICS programs directly access DB2, no RPC layer. User Menu Option 8 now open (wizard-style 3 screens + lookups). |
-| AA00    | Screen → RPC (with DB2)| `AA00`               | `AASX`                         | `COxxxxxU`     | `COxxxxxA`    | DB2 (via RPC) | RPC layer integrates with DB2.  User Menu Option 11 invokes RPC chain                                        |
+|---------|------------------------|----------------------|--------------------------------|---------------|---------------|----------------|------------------------------------------------------------------------|
+| AL00    | Screen → RPC           | `AL00`               | `ALSX`                         | `COxxxxxS`    | `COxxxxxL`    | VSAM (RPC)    | Standard CICS-to-RPC flow using VSAM. RPC logic handles persistence.  |
+| AD00    | Screen → DB2           | `AD00`               | `ADSX`                         | `COxxxxxD`    | (None)        | DB2 (Direct)  | CICS programs directly access DB2, no RPC layer. User Menu Option 8 now open (wizard-style 3 screens + lookups). |
+| AA00    | Screen → RPC (with DB2)| `AA00`               | `AASX`                         | `COxxxxxU`    | `COxxxxxA`    | DB2 (via RPC) | RPC layer integrates with DB2. User Menu Options 11–12 demonstrate chained DB2 RPC flows. |
 
-### Current Status
+## Current Status
+
 - ✅ **Admin Menu**: All options functional  
-- ✅ **User Menu**: Options 01–05 functional all variants; Option 08 only AD00; Option 11 only AA00 for RPC chain (Cust → Acct → Card → Trans).  
+- ✅ **User Menu**:
+  - **Options 01–05**: Functional in all variants
+  - **Option 08**: AD00 only (DB2 direct / wizard-style)
+  - **Option 11**: AA00 only — **Inquiry chain** (Screen → RPC/DB2)
+    - Customer Inquiry: `COCUSTADU` (screen) → `COCUSTADA` (RPC DB2)
+    - Account Inquiry: `COACTADU` (screen) → `COACTADA` (RPC DB2)
+    - Card Inquiry: `COCCARDA` (RPC DB2)
+    - Transaction Inquiry: `COTRANSA` (RPC DB2)
+  - **Option 12**: AA00 only — **Account + nested Customer Creation**
+    - **AASC** — Account creation (screen `COACTADU` → RPC `COACTADA`)
+      - **Inside AASC**, **AASD** is invoked for Customer creation (screen `COCUSTADU` → RPC `COCUSTADA`)
+      - Ensures every new account automatically creates its primary customer as part of the same transactional flow
 - ⚠️ `COACTUPS` / `COACTUPU` implement View/Update via RPC-to-RPC  
-- ⚠️ Note: The RPC chain programs `COCUSTMA`->`COACCNTA`->`COCCARDA`->`COTRANSA` temporarily expose the COMMAREA within the CICS region to facilitate inspection of the available API data during execution.
- 
+- ⚠️ Note: The RPC chain programs `COCUSTMA`→`COACCNTA`→`COCCARDA`→`COTRANSA` temporarily expose the COMMAREA within the CICS region to facilitate inspection of the available API data during execution.
 
 ## Program & Dataset Structure
 

@@ -1,0 +1,296 @@
+***********************************************************************
+*    CardDemo - Account Creation Screen - DB Field Order
+***********************************************************************
+        TITLE 'BMS MAP FOR ACCOUNT CREATION'
+COACTAD DFHMSD LANG=COBOL,                                             -
+               MODE=INOUT,                                             -
+               STORAGE=AUTO,                                           -
+               TIOAPFX=YES,                                            -
+               TYPE=&&SYSPARM
+COACTAD DFHMDI CTRL=(FREEKB),                                          -
+               DSATTS=(COLOR,HILIGHT,PS,VALIDN),                       -
+               MAPATTS=(COLOR,HILIGHT,PS,VALIDN),                      -
+               SIZE=(24,80)
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=5,                                               -
+               POS=(1,1),                                              -
+               INITIAL='Tran:'
+TRNNAME DFHMDF ATTRB=(ASKIP,FSET,NORM),                                -
+               COLOR=BLUE,                                             -
+               LENGTH=4,                                               -
+               POS=(1,7)
+TITLE01 DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=YELLOW,                                           -
+               LENGTH=40,                                              -
+               POS=(1,21)
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=5,                                               -
+               POS=(1,65),                                             -
+               INITIAL='Date:'
+CURDATE DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=8,                                               -
+               POS=(1,71),                                             -
+               INITIAL='mm/dd/yy'
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=5,                                               -
+               POS=(2,1),                                              -
+               INITIAL='Prog:'
+PGMNAME DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=8,                                               -
+               POS=(2,7)
+TITLE02 DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=YELLOW,                                           -
+               LENGTH=40,                                              -
+               POS=(2,21)
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=5,                                               -
+               POS=(2,65),                                             -
+               INITIAL='Time:'
+CURTIME DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=BLUE,                                             -
+               LENGTH=8,                                               -
+               POS=(2,71),                                             -
+               INITIAL='hh:mm:ss'
+
+* ===== TITLE =====
+        DFHMDF COLOR=NEUTRAL,                                          -
+               LENGTH=14,                                              -
+               POS=(4,33),                                             -
+               INITIAL='Create Account'
+
+* ===== CUSTOMER ID (FIRST - RELATIONSHIP CHECK) - FIXED =====
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(6,10),                                             -
+               INITIAL='Customer ID     :'
+CUSTID  DFHMDF ATTRB=(FSET,IC,UNPROT),                                 -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=9,                                               -
+               POS=(6,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(6,38)
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=25,                                              -
+               POS=(6,42),                                             -
+               INITIAL='(F4=Create New Customer)'
+
+* ===== ACCT_ACTIVE_STATUS - FIXED =====
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(7,10),                                             -
+               INITIAL='Active Y/N      :'
+ACSTTUS DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=1,                                               -
+               POS=(7,28),                                             -
+               INITIAL='Y'
+        DFHMDF LENGTH=0,                                               -
+               POS=(7,30)
+
+* ===== ACCT_CURR_BAL =====
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(8,10),                                             -
+               INITIAL='Current Balance :'
+ACURBAL DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=15,                                              -
+               POS=(8,28),                                             -
+               INITIAL='0.00'
+        DFHMDF LENGTH=0,                                               -
+               POS=(8,44)
+
+* ===== ACCT_CREDIT_LIMIT =====
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(9,10),                                             -
+               INITIAL='Credit Limit    :'
+ACRDLIM DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=15,                                              -
+               POS=(9,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(9,44)
+
+* ===== ACCT_CASH_CREDIT_LIMIT =====
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(10,10),                                            -
+               INITIAL='Cash Limit      :'
+ACSHLIM DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=15,                                              -
+               POS=(10,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(10,44)
+
+* ===== ACCT_OPEN_DATE - FIXED ALL FIELDS =====
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(11,10),                                            -
+               INITIAL='Open Date       :'
+OPNYEAR DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=4,                                               -
+               POS=(11,28)
+        DFHMDF LENGTH=1,                                               -
+               POS=(11,33),                                            -
+               INITIAL='-'
+OPNMON  DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=2,                                               -
+               POS=(11,35)
+        DFHMDF LENGTH=1,                                               -
+               POS=(11,38),                                            -
+               INITIAL='-'
+OPNDAY  DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=2,                                               -
+               POS=(11,40)
+        DFHMDF LENGTH=0,                                               -
+               POS=(11,43)
+
+* ===== ACCT_EXPIRAION_DATE - FIXED ALL FIELDS =====
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(12,10),                                            -
+               INITIAL='Expiry Date     :'
+EXPYEAR DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=4,                                               -
+               POS=(12,28)
+        DFHMDF LENGTH=1,                                               -
+               POS=(12,33),                                            -
+               INITIAL='-'
+EXPMON  DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=2,                                               -
+               POS=(12,35)
+        DFHMDF LENGTH=1,                                               -
+               POS=(12,38),                                            -
+               INITIAL='-'
+EXPDAY  DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=2,                                               -
+               POS=(12,40)
+        DFHMDF LENGTH=0,                                               -
+               POS=(12,43)
+
+* ===== ACCT_REISSUE_DATE - FIXED ALL FIELDS =====
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(13,10),                                            -
+               INITIAL='Reissue Date    :'
+RISYEAR DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=4,                                               -
+               POS=(13,28)
+        DFHMDF LENGTH=1,                                               -
+               POS=(13,33),                                            -
+               INITIAL='-'
+RISMON  DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=2,                                               -
+               POS=(13,35)
+        DFHMDF LENGTH=1,                                               -
+               POS=(13,38),                                            -
+               INITIAL='-'
+RISDAY  DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               JUSTIFY=(RIGHT),                                        -
+               LENGTH=2,                                               -
+               POS=(13,40)
+        DFHMDF LENGTH=0,                                               -
+               POS=(13,43)
+
+* ===== ACCT_CURR_CYC_CREDIT =====
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(14,10),                                            -
+               INITIAL='Cycle Credit    :'
+ACRCYCR DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=15,                                              -
+               POS=(14,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(14,44)
+
+* ===== ACCT_CURR_CYC_DEBIT =====
+        DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(15,10),                                            -
+               INITIAL='Cycle Debit     :'
+ACRCYDB DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=15,                                              -
+               POS=(15,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(15,44)
+
+* ===== ACCT_ADDR_ZIP - FIXED =====
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(16,10),                                            -
+               INITIAL='ZIP Code        :'
+ACZIP   DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=10,                                              -
+               POS=(16,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(16,39)
+
+* ===== ACCT_GROUP_ID - FIXED =====
+        DFHMDF COLOR=TURQUOISE,                                        -
+               LENGTH=16,                                              -
+               POS=(17,10),                                            -
+               INITIAL='Account Group   :'
+AADDGRP DFHMDF ATTRB=(FSET,UNPROT),                                    -
+               HILIGHT=UNDERLINE,                                      -
+               LENGTH=10,                                              -
+               POS=(17,28)
+        DFHMDF LENGTH=0,                                               -
+               POS=(17,39)
+
+* ===== MESSAGES =====
+INFOMSG DFHMDF ATTRB=(ASKIP),                                          -
+               COLOR=NEUTRAL,                                          -
+               HILIGHT=OFF,                                            -
+               LENGTH=45,                                              -
+               POS=(20,18)
+        DFHMDF LENGTH=0,                                               -
+               POS=(20,64)
+
+ERRMSG  DFHMDF ATTRB=(ASKIP,BRT,FSET),                                 -
+               COLOR=RED,                                              -
+               LENGTH=78,                                              -
+               POS=(22,1)
+
+* ===== FUNCTION KEYS =====
+FKEYS   DFHMDF ATTRB=(ASKIP,NORM),                                     -
+               COLOR=YELLOW,                                           -
+               LENGTH=59,                                              -
+               POS=(24,1),                                             -
+               INITIAL='F3=Exit F4=Create Customer Enter=Create Accnt'
+
+        DFHMSD TYPE=FINAL
+        END
