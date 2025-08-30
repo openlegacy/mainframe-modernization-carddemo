@@ -78,9 +78,10 @@ To run the DB2 variants (AD00 and AA00), you need to establish a proper DB2 envi
 
 3. **CICS Resource Definitions**: Use CEDA to define and install:
    - All PROGRAMS for the respective variants
+   - Compile the CSUTLDPL date utility 
    - All TRANSACTIONS 
-   - All MAPSETs related to User Menu option 8
-   - DB2TRANSACTION pointing to your DB2ENTRY
+   - All MAPSETs related to User Menu option 8, 11 and 12
+   - DB2TRANSACTION pointing to your DB2ENTRY7
    - **Important**: Due to the pseudoconversational nature of the application, previous transactions (such as Signon, UserMenu, or AdminMenu) may retain control even after transferring control to subsequent programs. This can persist until a transaction change occurs. To prevent DB2 authorization issues, create DB2TRANSACTION definitions for all transactions in the flow, not just the DB2-accessing programs.    
    - Ensure resources are installed under your CICS group
    - After compiling the programs, REBIND the associated DB2 packages
@@ -369,4 +370,5 @@ GRANT ALL ON <your-schema>.CUSTDAT TO PUBLIC;
 GRANT ALL ON <your-schema>.CXACAIX TO PUBLIC;
 GRANT ALL ON <your-schema>.TRANSACT TO PUBLIC;
 GRANT EXECUTE ON PLAN <your-schema> TO <your-schema>;
+
 ```
