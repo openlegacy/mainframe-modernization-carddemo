@@ -1,5 +1,5 @@
 ******************************************************************
-      * Program:     COCUSADU.CBL - WITH TARGET CUST-ID SUPPORT       *
+      * Program:     COCUSADU.CBL                                     *
       * Layer:       Presentation                                     *
       * Function:    Customer Creation Screen - calls COCUSADA RPC    *
       * Transaction: AASD                                             *
@@ -288,7 +288,6 @@
       * RESTORE TARGET CUST-ID WHEN RETURNING
                      IF WS-TARGET-CUST-ID NOT = ZEROS
                         MOVE WS-TARGET-CUST-ID TO CDEMO-CUST-ID
-                         WS-TARGET-CUST-ID
                      END-IF
       * CLEAR INFO MESSAGE WHEN RETURNING TO ACTADU
                      SET WS-NO-INFO-MESSAGE TO TRUE
@@ -553,7 +552,6 @@
            MOVE LIT-THISMAP            TO CCARD-NEXT-MAP
            SET  CDEMO-PGM-REENTER TO TRUE
 
-
            EXEC CICS SEND MAP(CCARD-NEXT-MAP)
                           MAPSET(CCARD-NEXT-MAPSET)
                           FROM(COCUSADO)
@@ -600,12 +598,9 @@
               THRU 9100-CREATE-CUST-VIA-RPC-EXIT
 
            IF CUST-RC-SUCCESS
-              SET WS-INFORM-SUCCESS TO TRUE
               MOVE WS-NEW-CUST-ID   TO CDEMO-CUST-ID
               SET ERR-FLG-OFF TO TRUE
-              MOVE LK-CUST-OUT-MESSAGE TO WS-MESSAGE
            ELSE
-      *       RPC FAILED - SET ERROR MESSAGE FROM RPC
               MOVE LK-CUST-OUT-MESSAGE TO WS-MESSAGE
               SET INPUT-ERROR TO TRUE
               SET ERR-FLG-ON TO TRUE
@@ -642,7 +637,6 @@
            MOVE CPRIHLDI OF COCUSADI   TO LK-CUST-IN-PRI-HOLDER
            MOVE CFICOI OF COCUSADI     TO LK-CUST-IN-FICO
 
-
            EXEC CICS LINK
                 PROGRAM(LIT-RPC-PROGRAM)
                 COMMAREA(WS-CUST-RPC-COMMAREA)
@@ -653,7 +647,6 @@
 
            MOVE WS-RESP-CD    TO WS-RESP-DISP.
            MOVE WS-REAS-CD    TO WS-REAS-DISP.
-
 
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)

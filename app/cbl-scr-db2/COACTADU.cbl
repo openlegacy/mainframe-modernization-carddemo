@@ -1,9 +1,9 @@
 ******************************************************************
-      * Program:     COACTADU.CBL - CUSTOMER ID PASSING ENHANCED      *
+      * Program:     COACTADU.CBL                                     *
       * Layer:       Presentation                                     *
       * Function:    Account Creation Screen - calls COACTADA RPC     *
       * Transaction: AASC                                             *
-      * Description: ACCOUNT CREATION SCREEN - CALLS RPC COACTADA    *
+      * Description: ACCOUNT CREATION SCREEN - CALLS RPC COACTADA     *
       ******************************************************************
        IDENTIFICATION DIVISION.
        PROGRAM-ID.
@@ -198,6 +198,7 @@
        PROCEDURE DIVISION.
 
        0000-MAIN.
+
            EXEC CICS HANDLE ABEND
                      LABEL(ABEND-ROUTINE)
            END-EXEC
@@ -217,13 +218,12 @@
               THRU YYYY-STORE-PFKEY-EXIT
 
       ******************************************************************
-      * SAFE COMMAREA HANDLING
+      * SAFE COMMAREA HANDLING WITH DEBUG
       ******************************************************************
            IF EIBCALEN = 0
                MOVE LIT-MENUPGM TO CDEMO-TO-PROGRAM
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
-
                MOVE DFHCOMMAREA (1:EIBCALEN) TO CARDDEMO-COMMAREA
 
       *        CLEAN CUSTOMER INFO FROM MENU POLLUTION
@@ -235,6 +235,7 @@
                IF CDEMO-FROM-PROGRAM = 'COCUSADU'
                AND CDEMO-CUST-ID NOT = ZEROS
                   MOVE CDEMO-CUST-ID TO WS-PERSIST-CUST-ID
+                          WS-PERSIST-CUST-ID
                END-IF
 
                IF NOT CDEMO-PGM-REENTER
@@ -246,14 +247,17 @@
                    ELSE
                       MOVE -1 TO CUSTIDL OF COACTADI
                    END-IF
-                     IF CDEMO-FROM-PROGRAM = 'COCUSADU'
-                   AND CDEMO-CUST-ID NOT = ZEROS
-                      STRING 'Customer ' CDEMO-CUST-ID
-                             ' created successfully.'
-                      DELIMITED BY SIZE INTO WS-MESSAGE
-                      SET ERR-FLG-OFF TO TRUE
-                      MOVE SPACES TO CDEMO-FROM-PROGRAM
-                   END-IF
+
+      *            CHECK FOR CUSTOMER CREATION SUCCESS MESSAGE
+                  IF CDEMO-FROM-PROGRAM = 'COACTADU'
+                  AND CDEMO-CUST-ID NOT = ZEROS
+                  AND WS-PERSIST-CUST-ID = SPACES
+                     STRING 'Customer ' CDEMO-CUST-ID ' created'
+                     ' - ready for account creation.'
+                     DELIMITED BY SIZE INTO WS-MESSAGE
+                     SET ERR-FLG-OFF TO TRUE
+                     MOVE SPACES TO CDEMO-FROM-PROGRAM
+                  END-IF
                    PERFORM SEND-ACCTADD-SCREEN
                ELSE
                    PERFORM RECEIVE-ACCTADD-SCREEN
@@ -261,31 +265,33 @@
                        WHEN CCARD-AID-ENTER
                            PERFORM PROCESS-ENTER-KEY
                        WHEN CCARD-AID-PFK03
-                       IF CDEMO-FROM-PROGRAM = 'COCUSADU'
-      *                 PRESERVE CUSTOMER ID FROM COMMAREA BEFORE REDISPLAY
-                         IF CDEMO-CUST-ID NOT = ZEROS
-                            MOVE CDEMO-CUST-ID TO WS-PERSIST-CUST-ID
-                             CDEMO-CUST-ID
-                         END-IF
-      *                 INITIALIZE AMOUNTS FOR PROPER DISPLAY
-                         INITIALIZE WS-CONVERTED-AMOUNTS
-                         INITIALIZE WS-FIELD-PERSISTENCE
-                         MOVE WS-PERSIST-CUST-ID TO CUSTIDI OF COACTADI
-                         MOVE SPACES TO INFOMSGO OF COACTADO
-                         PERFORM SEND-ACCTADD-SCREEN
-                         MOVE LIT-THISPGM     TO CDEMO-FROM-PROGRAM
-                         GO TO COMMON-RETURN
-                 ELSE
-                    MOVE LIT-MENUTRANID TO CDEMO-TO-TRANID
-                    MOVE LIT-MENUPGM    TO CDEMO-TO-PROGRAM
-                    MOVE LIT-THISTRANID TO CDEMO-FROM-TRANID
-                    MOVE LIT-THISPGM    TO CDEMO-FROM-PROGRAM
-                    SET  CDEMO-PGM-ENTER TO TRUE
-                    EXEC CICS XCTL
-                         PROGRAM (CDEMO-TO-PROGRAM)
-                         COMMAREA (CARDDEMO-COMMAREA)
-                    END-EXEC
-                 END-IF
+                           IF CDEMO-FROM-PROGRAM = 'COCUSADU'
+      *                     PRESERVE CUSTOMER ID FROM COMMAREA BEFORE REDISPLAY
+                             IF CDEMO-CUST-ID NOT = ZEROS
+                                MOVE CDEMO-CUST-ID TO WS-PERSIST-CUST-ID
+                                 CDEMO-CUST-ID
+                                SET ERR-FLG-OFF TO TRUE
+                             END-IF
+      *                     INITIALIZE AMOUNTS FOR PROPER DISPLAY
+                             INITIALIZE WS-CONVERTED-AMOUNTS
+                             INITIALIZE WS-FIELD-PERSISTENCE
+                             MOVE WS-PERSIST-CUST-ID TO
+                             CUSTIDI OF COACTADI
+                             MOVE SPACES TO INFOMSGO OF COACTADO
+                             PERFORM SEND-ACCTADD-SCREEN
+                             MOVE LIT-THISPGM     TO CDEMO-FROM-PROGRAM
+                             GO TO COMMON-RETURN
+                           ELSE
+                              MOVE LIT-MENUTRANID TO CDEMO-TO-TRANID
+                              MOVE LIT-MENUPGM    TO CDEMO-TO-PROGRAM
+                              MOVE LIT-THISTRANID TO CDEMO-FROM-TRANID
+                              MOVE LIT-THISPGM    TO CDEMO-FROM-PROGRAM
+                              SET  CDEMO-PGM-ENTER TO TRUE
+                              EXEC CICS XCTL
+                                   PROGRAM (CDEMO-TO-PROGRAM)
+                                   COMMAREA (CARDDEMO-COMMAREA)
+                              END-EXEC
+                           END-IF
 
                        WHEN CCARD-AID-PFK04
                          IF CUSTIDI OF COACTADI = SPACES
@@ -583,6 +589,7 @@
       * Process RPC Response - Enhanced for customer exists case
       ******************************************************************
        PROCESS-RPC-RESPONSE.
+
            EVALUATE LK-ACCT-OUT-RETURN-CODE
                WHEN 00
                    PERFORM INITIALIZE-ALL-FIELDS
@@ -676,6 +683,7 @@
       * Send Account Add Screen
       ******************************************************************
        SEND-ACCTADD-SCREEN.
+
            PERFORM POPULATE-HEADER-INFO
            PERFORM POPULATE-PERSISTED-FIELDS
 
@@ -687,10 +695,10 @@
 
            IF WS-MESSAGE NOT = SPACES
               MOVE WS-MESSAGE TO ERRMSGO OF COACTADO
+                      ERRMSGO OF COACTADO
            ELSE
                MOVE WS-MESSAGE TO ERRMSGO OF COACTADO
            END-IF
-
 
            EXEC CICS SEND
                      MAP(LIT-THISMAP)
@@ -699,6 +707,7 @@
                      ERASE
                      CURSOR
            END-EXEC
+
            .
 
       ******************************************************************
@@ -738,18 +747,6 @@
            MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS
 
            MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COACTADO
-
-
-           IF CDEMO-FROM-PROGRAM = 'COCUSADU'
-           AND CDEMO-CUST-ID NOT = ZEROS
-               STRING 'Customer ' CDEMO-CUST-ID
-                         ' created successfully.'
-               DELIMITED BY SIZE INTO WS-MESSAGE
-              SET ERR-FLG-OFF TO TRUE
-      *      Clear the from-program so message doesn't repeat
-             MOVE SPACES TO CDEMO-FROM-PROGRAM
-           END-IF
-
            .
 
       ******************************************************************
@@ -796,7 +793,7 @@
                  FUNCTION NUMVAL-C(WS-PERSIST-CYC-DEBIT)
            END-IF
 
-      *    Format amounts for nice display
+      *    Format amounts for display amounts
            MOVE WS-CREDIT-LIMIT-NUM TO WS-CREDIT-LIMIT-DISP
            MOVE WS-CREDIT-LIMIT-DISP TO ACRDLIMO OF COACTADO
 
