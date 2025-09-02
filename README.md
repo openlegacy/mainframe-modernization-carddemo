@@ -23,16 +23,13 @@ This fork adapts and extends the application to explore multiple architectural p
   - **Options 01–05**: Functional in all variants
   - **Option 08**: AD00 only (DB2 direct / wizard-style)
   - **Option 11**: AA00 only — **Inquiry chain** (Screen → RPC/DB2)
-    - Customer Inquiry: `COCUSTADU` (screen) → `COCUSTADA` (RPC DB2)
-    - Account Inquiry: `COACTADU` (screen) → `COACTADA` (RPC DB2)
-    - Card Inquiry: `COCCARDA` (RPC DB2)
-    - Transaction Inquiry: `COTRANSA` (RPC DB2)
+    - Customer Inquiry: `COACCSTU` (screen) → `COCUSTMA` (RPC DB2) → `COACTADA` (RPC DB2) → `COCCARDA` (RPC DB2) → `COTRANSA` (RPC DB2)
   - **Option 12**: AA00 only — **Account + nested Customer Creation**
     - **AASC** — Account creation (screen `COACTADU` → RPC `COACTADA`)
       - **Inside AASC**, **AASD** is invoked for Customer creation (screen `COCUSTADU` → RPC `COCUSTADA`)
       - Ensures every new account automatically creates its primary customer as part of the same transactional flow
 - ⚠️ `COACTUPS` / `COACTUPU` implement View/Update via RPC-to-RPC  
-- ⚠️ Note: The RPC chain programs `COCUSTMA`→`COACCNTA`→`COCCARDA`→`COTRANSA` temporarily expose the COMMAREA within the CICS region to facilitate inspection of the available API data during execution.
+- ⚠️ Note: The RPC chain programs temporarily expose the COMMAREA in the CICS region to allow inspection of available API data during execution. This is necessary because the data is too large for a single screen, and RPCs must remain stateless and not return to a different screen.
 
 ## Program & Dataset Structure
 
@@ -81,7 +78,7 @@ To run the DB2 variants (AD00 and AA00), you need to establish a proper DB2 envi
    - Compile the CSUTLDPL date utility 
    - All TRANSACTIONS 
    - All MAPSETs related to User Menu option 8, 11 and 12
-   - DB2TRANSACTION pointing to your DB2ENTRY7
+   - DB2TRANSACTION pointing to your DB2ENTRY
    - **Important**: Due to the pseudoconversational nature of the application, previous transactions (such as Signon, UserMenu, or AdminMenu) may retain control even after transferring control to subsequent programs. This can persist until a transaction change occurs. To prevent DB2 authorization issues, create DB2TRANSACTION definitions for all transactions in the flow, not just the DB2-accessing programs.    
    - Ensure resources are installed under your CICS group
    - After compiling the programs, REBIND the associated DB2 packages
@@ -372,3 +369,4 @@ GRANT ALL ON <your-schema>.TRANSACT TO PUBLIC;
 GRANT EXECUTE ON PLAN <your-schema> TO <your-schema>;
 
 ```
+
