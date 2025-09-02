@@ -18,7 +18,7 @@
       ******************************************************************
        01 CARDDEMO-MAIN-MENU-OPTIONS.
 
-         05 CDEMO-MENU-OPT-COUNT           PIC 9(02) VALUE 11.
+         05 CDEMO-MENU-OPT-COUNT           PIC 9(02) VALUE 12.
 
          05 CDEMO-MENU-OPTIONS-DATA.
 
@@ -87,6 +87,13 @@
            10 FILLER                       PIC X(35) VALUE
                'Customer/Account Card Search       '.
            10 FILLER                       PIC X(08) VALUE 'COACCSTU'.
+           10 FILLER                       PIC X(01) VALUE 'U'.
+
+
+           10 FILLER                       PIC 9(02) VALUE 12.
+           10 FILLER                       PIC X(35) VALUE
+               'Account(Customer) Creation         '.
+           10 FILLER                       PIC X(08) VALUE 'COACTADU'.
            10 FILLER                       PIC X(01) VALUE 'U'.
 
 
