@@ -1,26 +1,11 @@
-      ******************************************************************        
-      * Program     : COTRN00C.CBL
-      * Application : CardDemo
-      * Type        : CICS COBOL Program
-      * Function    : List Transactions from TRANSACT file
+000001******************************************************************
+      * Program:     COTRN00U                                          *
+      * Application: CardDemo                                         *
+      * Type:        CICS COBOL Program                               *
+      * Function:    List Transactions - Screen UI Program            *
       ******************************************************************
-      * Copyright Amazon.com, Inc. or its affiliates.                   
-      * All Rights Reserved.                                            
-      *                                                                 
-      * Licensed under the Apache License, Version 2.0 (the "License"). 
-      * You may not use this file except in compliance with the License.
-      * You may obtain a copy of the License at                         
-      *                                                                 
-      *    http://www.apache.org/licenses/LICENSE-2.0                   
-      *                                                                 
-      * Unless required by applicable law or agreed to in writing,      
-      * software distributed under the License is distributed on an     
-      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,    
-      * either express or implied. See the License for the specific     
-      * language governing permissions and limitations under the License
-      ****************************************************************** 
        IDENTIFICATION DIVISION.
-       PROGRAM-ID. COTRN00C.
+       PROGRAM-ID. COTRN00U.
        AUTHOR.     AWS.
 
        ENVIRONMENT DIVISION.
@@ -33,30 +18,27 @@
        WORKING-STORAGE SECTION.
 
        01 WS-VARIABLES.
-         05 WS-PGMNAME                 PIC X(08) VALUE 'COTRN00C'.
-         05 WS-TRANID                  PIC X(04) VALUE 'CT00'.
+         05 WS-PGMNAME                 PIC X(08) VALUE 'COTRN00U'.
+         05 WS-TRANID                  PIC X(04) VALUE 'AASE'.
          05 WS-MESSAGE                 PIC X(80) VALUE SPACES.
-         05 WS-TRANSACT-FILE             PIC X(08) VALUE 'TRANSACT'.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                         VALUE 'Y'.
            88 ERR-FLG-OFF                        VALUE 'N'.
-         05 WS-TRANSACT-EOF            PIC X(01) VALUE 'N'.
-           88 TRANSACT-EOF                       VALUE 'Y'.
-           88 TRANSACT-NOT-EOF                   VALUE 'N'.
          05 WS-SEND-ERASE-FLG          PIC X(01) VALUE 'Y'.
            88 SEND-ERASE-YES                     VALUE 'Y'.
            88 SEND-ERASE-NO                      VALUE 'N'.
 
          05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.
          05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.
-         05 WS-REC-COUNT               PIC S9(04) COMP VALUE ZEROS.
          05 WS-IDX                     PIC S9(04) COMP VALUE ZEROS.
-         05 WS-PAGE-NUM                PIC S9(04) COMP VALUE ZEROS.
 
          05 WS-TRAN-AMT                PIC +99999999.99.
          05 WS-TRAN-DATE               PIC X(08) VALUE '00/00/00'.
 
-
+      ******************************************************************
+      * RPC Program name and communication area
+      ******************************************************************
+         05 WS-RPC-PROGRAM             PIC X(08) VALUE 'COTRN00A'.
 
        COPY COCOM01Y.
           05 CDEMO-CT00-INFO.
@@ -80,6 +62,37 @@
        COPY DFHAID.
        COPY DFHBMSCA.
 
+      ******************************************************************
+      * RPC Communication Area
+      ******************************************************************
+       01 WS-RPC-COMMAREA.
+          05 LK-INPUT-PARMS.
+             10 LK-IN-OPERATION         PIC X(01).
+                88 OP-READ                       VALUE 'R'.
+                88 OP-LIST-FORWARD               VALUE 'F'.
+                88 OP-LIST-BACKWARD              VALUE 'B'.
+             10 LK-IN-TRAN-ID           PIC X(16).
+             10 LK-IN-MAX-RECORDS       PIC S9(04) COMP.
+          05 LK-OUTPUT-STATUS.
+             10 LK-OUT-RETURN-CODE      PIC 9(02).
+                88 RC-SUCCESS                    VALUE 00.
+                88 RC-NOT-FOUND                  VALUE 01.
+                88 RC-INPUT-ERROR                VALUE 03.
+                88 RC-DATABASE-ERROR             VALUE 99.
+             10 LK-OUT-MESSAGE          PIC X(80).
+          05 LK-OUTPUT-DATA.
+             10 LK-OUT-RECORDS-COUNT    PIC S9(04) COMP.
+             10 LK-OUT-NEXT-PAGE-FLG    PIC X(01).
+                88 LK-NEXT-PAGE-YES              VALUE 'Y'.
+                88 LK-NEXT-PAGE-NO               VALUE 'N'.
+             10 LK-OUT-TRAN-ARRAY       OCCURS 1 TO 10
+                                        DEPENDING ON
+                                        LK-OUT-RECORDS-COUNT.
+                15 LK-OUT-TRAN-ID       PIC X(16).
+                15 LK-OUT-TRAN-AMT      PIC S9(10)V99 COMP-3.
+                15 LK-OUT-TRAN-DESC     PIC X(50).
+                15 LK-OUT-TRAN-ORIG-TS  PIC X(26).
+
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
       *----------------------------------------------------------------*
@@ -95,7 +108,6 @@
        MAIN-PARA.
 
            SET ERR-FLG-OFF TO TRUE
-           SET TRANSACT-NOT-EOF TO TRUE
            SET NEXT-PAGE-NO TO TRUE
            SET SEND-ERASE-YES TO TRUE
 
@@ -105,7 +117,7 @@
            MOVE -1       TO TRNIDINL OF COTRN0AI
 
            IF EIBCALEN = 0
-               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
@@ -120,7 +132,7 @@
                        WHEN DFHENTER
                            PERFORM PROCESS-ENTER-KEY
                        WHEN DFHPF3
-                           MOVE 'COMEN01C' TO CDEMO-TO-PROGRAM
+                           MOVE 'COMEN01S' TO CDEMO-TO-PROGRAM
                            PERFORM RETURN-TO-PREV-SCREEN
                        WHEN DFHPF7
                            PERFORM PROCESS-PF7-KEY
@@ -180,12 +192,13 @@
                    MOVE SPACES   TO CDEMO-CT00-TRN-SEL-FLG
                    MOVE SPACES   TO CDEMO-CT00-TRN-SELECTED
            END-EVALUATE
+
            IF (CDEMO-CT00-TRN-SEL-FLG NOT = SPACES AND LOW-VALUES) AND
               (CDEMO-CT00-TRN-SELECTED NOT = SPACES AND LOW-VALUES)
                EVALUATE CDEMO-CT00-TRN-SEL-FLG
                    WHEN 'S'
                    WHEN 's'
-                        MOVE 'COTRN01C'   TO CDEMO-TO-PROGRAM
+                        MOVE 'COTRN01U'   TO CDEMO-TO-PROGRAM
                         MOVE WS-TRANID    TO CDEMO-FROM-TRANID
                         MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
                         MOVE 0        TO CDEMO-PGM-CONTEXT
@@ -194,32 +207,30 @@
                             COMMAREA(CARDDEMO-COMMAREA)
                         END-EXEC
                    WHEN OTHER
-      *                SET TRANSACT-EOF TO TRUE
-                       MOVE
-                       'Invalid selection. Valid value is S' TO
-                                       WS-MESSAGE
+                       STRING 'Invalid selection. Valid value is S'
+                              DELIMITED BY SIZE
+                         INTO WS-MESSAGE
                        MOVE -1       TO TRNIDINL OF COTRN0AI
-      *                PERFORM SEND-TRNLST-SCREEN
                END-EVALUATE
            END-IF
 
            IF TRNIDINI OF COTRN0AI = SPACES OR LOW-VALUES
-               MOVE LOW-VALUES TO TRAN-ID
+               MOVE LOW-VALUES TO CDEMO-CT00-TRNID-FIRST
            ELSE
                IF TRNIDINI  OF COTRN0AI IS NUMERIC
-                   MOVE TRNIDINI  OF COTRN0AI    TO TRAN-ID
+                   MOVE TRNIDINI  OF COTRN0AI TO
+                        CDEMO-CT00-TRNID-FIRST
                ELSE
-                   MOVE 'Y'                       TO WS-ERR-FLG
-                   MOVE
-                   'Tran ID must be Numeric ...' TO
-                                   WS-MESSAGE
-                   MOVE -1                 TO TRNIDINL OF COTRN0AI
+                   MOVE 'Y' TO WS-ERR-FLG
+                   STRING 'Tran ID must be Numeric'
+                          DELIMITED BY SIZE
+                     INTO WS-MESSAGE
+                   MOVE -1 TO TRNIDINL OF COTRN0AI
                    PERFORM SEND-TRNLST-SCREEN
                END-IF
            END-IF
 
            MOVE -1       TO TRNIDINL OF COTRN0AI
-
 
            MOVE 0       TO CDEMO-CT00-PAGE-NUM
            PERFORM PROCESS-PAGE-FORWARD
@@ -234,9 +245,7 @@
        PROCESS-PF7-KEY.
 
            IF CDEMO-CT00-TRNID-FIRST = SPACES OR LOW-VALUES
-               MOVE LOW-VALUES TO TRAN-ID
-           ELSE
-               MOVE CDEMO-CT00-TRNID-FIRST TO TRAN-ID
+               MOVE LOW-VALUES TO CDEMO-CT00-TRNID-FIRST
            END-IF
 
            SET NEXT-PAGE-YES TO TRUE
@@ -245,8 +254,9 @@
            IF CDEMO-CT00-PAGE-NUM > 1
                PERFORM PROCESS-PAGE-BACKWARD
            ELSE
-               MOVE 'You are already at the top of the page...' TO
-                               WS-MESSAGE
+               STRING 'You are already at the top of the page'
+                      DELIMITED BY SIZE
+                 INTO WS-MESSAGE
                SET SEND-ERASE-NO TO TRUE
                PERFORM SEND-TRNLST-SCREEN
            END-IF.
@@ -257,9 +267,7 @@
        PROCESS-PF8-KEY.
 
            IF CDEMO-CT00-TRNID-LAST = SPACES OR LOW-VALUES
-               MOVE HIGH-VALUES TO TRAN-ID
-           ELSE
-               MOVE CDEMO-CT00-TRNID-LAST TO TRAN-ID
+               MOVE HIGH-VALUES TO CDEMO-CT00-TRNID-LAST
            END-IF
 
            MOVE -1       TO TRNIDINL OF COTRN0AI
@@ -267,8 +275,9 @@
            IF NEXT-PAGE-YES
                PERFORM PROCESS-PAGE-FORWARD
            ELSE
-               MOVE 'You are already at the bottom of the page...' TO
-                               WS-MESSAGE
+               STRING 'You are already at the bottom of the page'
+                      DELIMITED BY SIZE
+                 INTO WS-MESSAGE
                SET SEND-ERASE-NO TO TRUE
                PERFORM SEND-TRNLST-SCREEN
            END-IF.
@@ -278,101 +287,147 @@
       *----------------------------------------------------------------*
        PROCESS-PAGE-FORWARD.
 
-           PERFORM STARTBR-TRANSACT-FILE
+           MOVE SPACES TO LK-INPUT-PARMS
+           MOVE ZEROS TO LK-OUT-RETURN-CODE
+           MOVE SPACES TO LK-OUT-MESSAGE
+           MOVE ZEROS TO LK-OUT-RECORDS-COUNT
+           MOVE SPACES TO LK-OUT-NEXT-PAGE-FLG
+           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 10
+               MOVE SPACES TO LK-OUT-TRAN-ID(WS-IDX)
+               MOVE ZEROS TO LK-OUT-TRAN-AMT(WS-IDX)
+               MOVE SPACES TO LK-OUT-TRAN-DESC(WS-IDX)
+               MOVE SPACES TO LK-OUT-TRAN-ORIG-TS(WS-IDX)
+           END-PERFORM
 
-           IF NOT ERR-FLG-ON
-
-               IF EIBAID NOT = DFHENTER AND DFHPF7 AND DFHPF3
-                   PERFORM READNEXT-TRANSACT-FILE
+           IF EIBAID = DFHENTER OR CDEMO-CT00-PAGE-NUM = 0
+               SET OP-READ TO TRUE
+               IF TRNIDINI OF COTRN0AI = SPACES OR LOW-VALUES
+                   MOVE LOW-VALUES TO LK-IN-TRAN-ID
+               ELSE
+                   MOVE TRNIDINI OF COTRN0AI TO LK-IN-TRAN-ID
                END-IF
+           ELSE
+               SET OP-LIST-FORWARD TO TRUE
+               MOVE CDEMO-CT00-TRNID-LAST TO LK-IN-TRAN-ID
+           END-IF
 
-               IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
-                  PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 10
-                      PERFORM INITIALIZE-TRAN-DATA
-                  END-PERFORM
-               END-IF
+           MOVE 10 TO LK-IN-MAX-RECORDS
 
-               MOVE 1             TO  WS-IDX
+           PERFORM CALL-RPC-PROGRAM
 
-               PERFORM UNTIL WS-IDX >= 11 OR TRANSACT-EOF OR ERR-FLG-ON
-                   PERFORM READNEXT-TRANSACT-FILE
-                   IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
-                       PERFORM POPULATE-TRAN-DATA
-                       COMPUTE WS-IDX = WS-IDX + 1
-                   END-IF
-               END-PERFORM
-
-               IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
-                   COMPUTE CDEMO-CT00-PAGE-NUM =
-                           CDEMO-CT00-PAGE-NUM + 1
-                   PERFORM READNEXT-TRANSACT-FILE
-                   IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
+           IF RC-SUCCESS OR RC-NOT-FOUND
+               IF LK-OUT-RECORDS-COUNT > 0
+                   PERFORM POPULATE-SCREEN-FROM-RPC
+                   ADD 1 TO CDEMO-CT00-PAGE-NUM
+                   IF LK-NEXT-PAGE-YES
                        SET NEXT-PAGE-YES TO TRUE
                    ELSE
                        SET NEXT-PAGE-NO TO TRUE
                    END-IF
                ELSE
                    SET NEXT-PAGE-NO TO TRUE
-                   IF WS-IDX > 1
-                       COMPUTE CDEMO-CT00-PAGE-NUM = CDEMO-CT00-PAGE-NUM
-                        + 1
-                   END-IF
                END-IF
+               MOVE LK-OUT-MESSAGE TO WS-MESSAGE
+           ELSE
+               MOVE 'Y' TO WS-ERR-FLG
+               MOVE LK-OUT-MESSAGE TO WS-MESSAGE
+           END-IF
 
-               PERFORM ENDBR-TRANSACT-FILE
-
-               MOVE CDEMO-CT00-PAGE-NUM TO PAGENUMI  OF COTRN0AI
-               MOVE SPACE   TO TRNIDINO  OF COTRN0AO
-               PERFORM SEND-TRNLST-SCREEN
-
-           END-IF.
+           MOVE CDEMO-CT00-PAGE-NUM TO PAGENUMI OF COTRN0AI
+           MOVE SPACE TO TRNIDINO OF COTRN0AO
+           PERFORM SEND-TRNLST-SCREEN.
 
       *----------------------------------------------------------------*
       *                      PROCESS-PAGE-BACKWARD
       *----------------------------------------------------------------*
        PROCESS-PAGE-BACKWARD.
 
-           PERFORM STARTBR-TRANSACT-FILE
+           MOVE SPACES TO LK-INPUT-PARMS
+           MOVE ZEROS TO LK-OUT-RETURN-CODE
+           MOVE SPACES TO LK-OUT-MESSAGE
+           MOVE ZEROS TO LK-OUT-RECORDS-COUNT
+           MOVE SPACES TO LK-OUT-NEXT-PAGE-FLG
+           PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 10
+               MOVE SPACES TO LK-OUT-TRAN-ID(WS-IDX)
+               MOVE ZEROS TO LK-OUT-TRAN-AMT(WS-IDX)
+               MOVE SPACES TO LK-OUT-TRAN-DESC(WS-IDX)
+               MOVE SPACES TO LK-OUT-TRAN-ORIG-TS(WS-IDX)
+           END-PERFORM
 
-           IF NOT ERR-FLG-ON
+           SET OP-LIST-BACKWARD TO TRUE
+           MOVE CDEMO-CT00-TRNID-FIRST TO LK-IN-TRAN-ID
+           MOVE 10 TO LK-IN-MAX-RECORDS
 
-               IF EIBAID NOT = DFHENTER AND DFHPF8
-                   PERFORM READPREV-TRANSACT-FILE
-               END-IF
+           PERFORM CALL-RPC-PROGRAM
 
-               IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
-                  PERFORM VARYING WS-IDX FROM 1 BY 1 UNTIL WS-IDX > 10
-                     PERFORM INITIALIZE-TRAN-DATA
-                  END-PERFORM
-               END-IF
-
-               MOVE 10          TO  WS-IDX
-
-               PERFORM UNTIL WS-IDX <= 0 OR TRANSACT-EOF OR ERR-FLG-ON
-                   PERFORM READPREV-TRANSACT-FILE
-                   IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
-                       PERFORM POPULATE-TRAN-DATA
-                       COMPUTE WS-IDX = WS-IDX - 1
+           IF RC-SUCCESS OR RC-NOT-FOUND
+               IF LK-OUT-RECORDS-COUNT > 0
+                   PERFORM POPULATE-SCREEN-FROM-RPC
+                   IF CDEMO-CT00-PAGE-NUM > 1
+                       SUBTRACT 1 FROM CDEMO-CT00-PAGE-NUM
                    END-IF
-               END-PERFORM
-
-               IF TRANSACT-NOT-EOF AND ERR-FLG-OFF
-                  PERFORM READPREV-TRANSACT-FILE
-                  IF NEXT-PAGE-YES
-                     IF TRANSACT-NOT-EOF AND ERR-FLG-OFF AND
-                        CDEMO-CT00-PAGE-NUM > 1
-                        SUBTRACT 1 FROM CDEMO-CT00-PAGE-NUM
-                     ELSE
-                        MOVE 1 TO CDEMO-CT00-PAGE-NUM
-                     END-IF
-                  END-IF
                END-IF
+               MOVE LK-OUT-MESSAGE TO WS-MESSAGE
+           ELSE
+               MOVE 'Y' TO WS-ERR-FLG
+               MOVE LK-OUT-MESSAGE TO WS-MESSAGE
+           END-IF
 
-               PERFORM ENDBR-TRANSACT-FILE
+           MOVE CDEMO-CT00-PAGE-NUM TO PAGENUMI OF COTRN0AI
+           PERFORM SEND-TRNLST-SCREEN.
 
-               MOVE CDEMO-CT00-PAGE-NUM TO PAGENUMI  OF COTRN0AI
-               PERFORM SEND-TRNLST-SCREEN
+      *----------------------------------------------------------------*
+      *                      CALL-RPC-PROGRAM
+      *----------------------------------------------------------------*
+       CALL-RPC-PROGRAM.
 
+           EXEC CICS LINK
+                PROGRAM(WS-RPC-PROGRAM)
+                COMMAREA(WS-RPC-COMMAREA)
+                LENGTH(LENGTH OF WS-RPC-COMMAREA)
+                RESP(WS-RESP-CD)
+                RESP2(WS-REAS-CD)
+           END-EXEC
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   CONTINUE
+               WHEN DFHRESP(PGMIDERR)
+                   MOVE 'Y' TO WS-ERR-FLG
+                   STRING 'RPC program not found'
+                          DELIMITED BY SIZE
+                     INTO WS-MESSAGE
+               WHEN OTHER
+                   MOVE 'Y' TO WS-ERR-FLG
+                   STRING 'Error calling RPC program'
+                          DELIMITED BY SIZE
+                     INTO WS-MESSAGE
+           END-EVALUATE.
+
+      *----------------------------------------------------------------*
+      *                      POPULATE-SCREEN-FROM-RPC
+      *----------------------------------------------------------------*
+       POPULATE-SCREEN-FROM-RPC.
+
+           PERFORM VARYING WS-IDX FROM 1 BY 1
+                   UNTIL WS-IDX > 10
+               PERFORM INITIALIZE-TRAN-DATA
+           END-PERFORM
+
+           PERFORM VARYING WS-IDX FROM 1 BY 1
+                   UNTIL WS-IDX > LK-OUT-RECORDS-COUNT
+                   OR WS-IDX > 10
+               PERFORM POPULATE-TRAN-DATA
+           END-PERFORM
+
+           IF LK-OUT-RECORDS-COUNT > 0
+               MOVE LK-OUT-TRAN-ID(1) TO CDEMO-CT00-TRNID-FIRST
+               IF LK-OUT-RECORDS-COUNT >= 10
+                   MOVE LK-OUT-TRAN-ID(10) TO CDEMO-CT00-TRNID-LAST
+               ELSE
+                   MOVE LK-OUT-TRAN-ID(LK-OUT-RECORDS-COUNT) TO
+                        CDEMO-CT00-TRNID-LAST
+               END-IF
            END-IF.
 
       *----------------------------------------------------------------*
@@ -380,66 +435,74 @@
       *----------------------------------------------------------------*
        POPULATE-TRAN-DATA.
 
-           MOVE TRAN-AMT                  TO WS-TRAN-AMT
-           MOVE TRAN-ORIG-TS              TO WS-TIMESTAMP
+           MOVE LK-OUT-TRAN-AMT(WS-IDX) TO WS-TRAN-AMT
+           MOVE LK-OUT-TRAN-ORIG-TS(WS-IDX) TO WS-TIMESTAMP
            MOVE WS-TIMESTAMP-DT-YYYY(3:2) TO WS-CURDATE-YY
-           MOVE WS-TIMESTAMP-DT-MM        TO WS-CURDATE-MM
-           MOVE WS-TIMESTAMP-DT-DD        TO WS-CURDATE-DD
-           MOVE WS-CURDATE-MM-DD-YY       TO WS-TRAN-DATE
+           MOVE WS-TIMESTAMP-DT-MM TO WS-CURDATE-MM
+           MOVE WS-TIMESTAMP-DT-DD TO WS-CURDATE-DD
+           MOVE WS-CURDATE-MM-DD-YY TO WS-TRAN-DATE
 
            EVALUATE WS-IDX
                WHEN 1
-                   MOVE TRAN-ID    TO TRNID01I OF COTRN0AI
-                                         CDEMO-CT00-TRNID-FIRST
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID01I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE01I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC01I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT001I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC01I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT001I OF COTRN0AI
                WHEN 2
-                   MOVE TRAN-ID    TO TRNID02I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID02I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE02I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC02I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT002I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC02I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT002I OF COTRN0AI
                WHEN 3
-                   MOVE TRAN-ID    TO TRNID03I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID03I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE03I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC03I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT003I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC03I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT003I OF COTRN0AI
                WHEN 4
-                   MOVE TRAN-ID    TO TRNID04I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID04I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE04I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC04I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT004I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC04I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT004I OF COTRN0AI
                WHEN 5
-                   MOVE TRAN-ID    TO TRNID05I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID05I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE05I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC05I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT005I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC05I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT005I OF COTRN0AI
                WHEN 6
-                   MOVE TRAN-ID    TO TRNID06I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID06I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE06I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC06I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT006I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC06I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT006I OF COTRN0AI
                WHEN 7
-                   MOVE TRAN-ID    TO TRNID07I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID07I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE07I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC07I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT007I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC07I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT007I OF COTRN0AI
                WHEN 8
-                   MOVE TRAN-ID    TO TRNID08I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID08I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE08I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC08I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT008I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC08I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT008I OF COTRN0AI
                WHEN 9
-                   MOVE TRAN-ID    TO TRNID09I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID09I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE09I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC09I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT009I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC09I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT009I OF COTRN0AI
                WHEN 10
-                   MOVE TRAN-ID    TO TRNID10I OF COTRN0AI
-                                         CDEMO-CT00-TRNID-LAST
+                   MOVE LK-OUT-TRAN-ID(WS-IDX) TO TRNID10I OF COTRN0AI
                    MOVE WS-TRAN-DATE TO TDATE10I OF COTRN0AI
-                   MOVE TRAN-DESC TO TDESC10I OF COTRN0AI
-                   MOVE WS-TRAN-AMT  TO TAMT010I OF COTRN0AI
+                   MOVE LK-OUT-TRAN-DESC(WS-IDX) TO TDESC10I OF
+                        COTRN0AI
+                   MOVE WS-TRAN-AMT TO TAMT010I OF COTRN0AI
                WHEN OTHER
                    CONTINUE
            END-EVALUATE.
@@ -510,7 +573,7 @@
        RETURN-TO-PREV-SCREEN.
 
            IF CDEMO-TO-PROGRAM = LOW-VALUES OR SPACES
-               MOVE 'COSGN00C' TO CDEMO-TO-PROGRAM
+               MOVE 'COSGN00S' TO CDEMO-TO-PROGRAM
            END-IF
            MOVE WS-TRANID    TO CDEMO-FROM-TRANID
            MOVE WS-PGMNAME   TO CDEMO-FROM-PROGRAM
@@ -519,7 +582,6 @@
                XCTL PROGRAM(CDEMO-TO-PROGRAM)
                COMMAREA(CARDDEMO-COMMAREA)
            END-EXEC.
-
 
       *----------------------------------------------------------------*
       *                      SEND-TRNLST-SCREEN
@@ -543,7 +605,6 @@
                          MAP('COTRN0A')
                          MAPSET('COTRN00')
                          FROM(COTRN0AO)
-      *                  ERASE
                          CURSOR
                END-EXEC
            END-IF.
@@ -584,116 +645,3 @@
            MOVE WS-CURTIME-SECOND      TO WS-CURTIME-SS
 
            MOVE WS-CURTIME-HH-MM-SS    TO CURTIMEO OF COTRN0AO.
-
-      *----------------------------------------------------------------*
-      *                      STARTBR-TRANSACT-FILE
-      *----------------------------------------------------------------*
-       STARTBR-TRANSACT-FILE.
-
-           EXEC CICS STARTBR
-                DATASET   (WS-TRANSACT-FILE)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-      *         GTEQ
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
-
-           EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
-                   CONTINUE
-               WHEN DFHRESP(NOTFND)
-                   CONTINUE
-                   SET TRANSACT-EOF TO TRUE
-                   MOVE 'You are at the top of the page...' TO
-                                   WS-MESSAGE
-                   MOVE -1       TO TRNIDINL OF COTRN0AI
-                   PERFORM SEND-TRNLST-SCREEN
-               WHEN OTHER
-                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD
-                   MOVE 'Y'     TO WS-ERR-FLG
-                   MOVE 'Unable to lookup transaction...' TO
-                                   WS-MESSAGE
-                   MOVE -1       TO TRNIDINL OF COTRN0AI
-                   PERFORM SEND-TRNLST-SCREEN
-           END-EVALUATE.
-
-      *----------------------------------------------------------------*
-      *                      READNEXT-TRANSACT-FILE
-      *----------------------------------------------------------------*
-       READNEXT-TRANSACT-FILE.
-
-           EXEC CICS READNEXT
-                DATASET   (WS-TRANSACT-FILE)
-                INTO      (TRAN-RECORD)
-                LENGTH    (LENGTH OF TRAN-RECORD)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
-
-           EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
-                   CONTINUE
-               WHEN DFHRESP(ENDFILE)
-                   CONTINUE
-                   SET TRANSACT-EOF TO TRUE
-                   MOVE 'You have reached the bottom of the page...' TO
-                                   WS-MESSAGE
-                   MOVE -1       TO TRNIDINL OF COTRN0AI
-                   PERFORM SEND-TRNLST-SCREEN
-               WHEN OTHER
-                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD
-                   MOVE 'Y'     TO WS-ERR-FLG
-                   MOVE 'Unable to lookup transaction...' TO
-                                   WS-MESSAGE
-                   MOVE -1       TO TRNIDINL OF COTRN0AI
-                   PERFORM SEND-TRNLST-SCREEN
-           END-EVALUATE.
-
-      *----------------------------------------------------------------*
-      *                      READPREV-TRANSACT-FILE
-      *----------------------------------------------------------------*
-       READPREV-TRANSACT-FILE.
-
-           EXEC CICS READPREV
-                DATASET   (WS-TRANSACT-FILE)
-                INTO      (TRAN-RECORD)
-                LENGTH    (LENGTH OF TRAN-RECORD)
-                RIDFLD    (TRAN-ID)
-                KEYLENGTH (LENGTH OF TRAN-ID)
-                RESP      (WS-RESP-CD)
-                RESP2     (WS-REAS-CD)
-           END-EXEC.
-
-           EVALUATE WS-RESP-CD
-               WHEN DFHRESP(NORMAL)
-                   CONTINUE
-               WHEN DFHRESP(ENDFILE)
-                   CONTINUE
-                   SET TRANSACT-EOF TO TRUE
-                   MOVE 'You have reached the top of the page...' TO
-                                   WS-MESSAGE
-                   MOVE -1       TO TRNIDINL OF COTRN0AI
-                   PERFORM SEND-TRNLST-SCREEN
-               WHEN OTHER
-                   DISPLAY 'RESP:' WS-RESP-CD 'REAS:' WS-REAS-CD
-                   MOVE 'Y'     TO WS-ERR-FLG
-                   MOVE 'Unable to lookup transaction...' TO
-                                   WS-MESSAGE
-                   MOVE -1       TO TRNIDINL OF COTRN0AI
-                   PERFORM SEND-TRNLST-SCREEN
-           END-EVALUATE.
-
-      *----------------------------------------------------------------*
-      *                      ENDBR-TRANSACT-FILE
-      *----------------------------------------------------------------*
-       ENDBR-TRANSACT-FILE.
-
-           EXEC CICS ENDBR
-                DATASET   (WS-TRANSACT-FILE)
-           END-EXEC.
-      *
-      * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:34 CDT
-      *

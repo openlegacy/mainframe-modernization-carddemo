@@ -1,90 +1,94 @@
 # CardDemo -- Mainframe CardDemo Application
 
-> **Note**: This is a forked version of the original [AWS Mainframe Modernization CardDemo](https://github.com/aws-samples/aws-mainframe-modernization-carddemo/blob/main/README.md). For overall application structure, installation instructions, and general usage details, please refer to the original repository. For technical support or feature requests, open an issue in this repository.  
+**Note:** This is a forked version of the original AWS Mainframe Modernization CardDemo. For overall application structure, installation instructions, and general usage details, please refer to the original repository. For technical support or feature requests, open an issue in this repository.
 
-This fork adapts and extends the application to explore multiple architectural patterns:  
+This fork adapts the application to the **AL00 architectural pattern** with a hybrid DB2/VSAM backend.
 
-1. **Screen to RPC (VSAM)** – AL00  
-2. **Screen to DB2** – AD00  
-3. **Screen to RPC with DB2** – AA00  
+## Overview of Architecture
 
-## Overview of Variants
+### AL00 Pattern: Screen → RPC (Hybrid DB2/VSAM)
 
-| Variant | Flow Type              | Initial Transaction | Subsequent Transactions Prefix | Screen Prefix | Logic Prefix | Backend       | Notes                                                                 |
-|---------|------------------------|----------------------|--------------------------------|---------------|---------------|----------------|------------------------------------------------------------------------|
-| AL00    | Screen → RPC           | `AL00`               | `ALSX`                         | `COxxxxxS`    | `COxxxxxL`    | VSAM (RPC)    | Standard CICS-to-RPC flow using VSAM. RPC logic handles persistence.  |
-| AD00    | Screen → DB2           | `AD00`               | `ADSX`                         | `COxxxxxD`    | (None)        | DB2 (Direct)  | CICS programs directly access DB2, no RPC layer. User Menu Option 8 now open (wizard-style 3 screens + lookups). |
-| AA00    | Screen → RPC (with DB2)| `AA00`               | `AASX`                         | `COxxxxxU`    | `COxxxxxA`    | DB2 (via RPC) | RPC layer integrates with DB2. User Menu Options 11–12 demonstrate chained DB2 RPC flows. |
+| Variant | Flow Type | Initial Transaction | Subsequent Transactions Prefix | Screen Prefix | Logic Prefix | Backend | Notes |
+|---------|-----------|---------------------|--------------------------------|---------------|--------------|---------|-------|
+| AL00 | Screen → RPC | `AL00` | `ALSX` | `COxxxxxS` / `COxxxxxU` | `COxxxxxL` / `COxxxxxA` | VSAM + DB2 (RPC) | Standard CICS-to-RPC flow. Most operations use VSAM via RPC. Transaction-related screens (`COTRN00U`, `COTRN01U`, `COTRN02U`) and their RPCs (`COTRN00A`, `COTRN01A`, `COTRN02A`) use DB2 via RPC. |
+
+**Key Points:**
+- **VSAM**: Used for Account, Card, and Customer data (via RPC programs `COxxxxxL`)
+- **DB2**: Used for Transaction data (via RPC programs `COxxxxxA`)
+- Screens ending in `S` call VSAM-based RPCs (`COxxxxxL`)
+- Screens ending in `U` call DB2-based RPCs (`COxxxxxA`)
 
 ## Current Status
 
-- ✅ **Admin Menu**: All options functional  
-- ✅ **User Menu**:
-  - **Options 01–05**: Functional in all variants
-  - **Option 08**: AD00 only (DB2 direct / wizard-style)
-  - **Option 11**: AA00 only — **Inquiry chain** (Screen → RPC/DB2)
-    - Customer Inquiry: `COACCSTU` (screen) → `COCUSTMA` (RPC DB2) → `COACTADA` (RPC DB2) → `COCCARDA` (RPC DB2) → `COTRANSA` (RPC DB2)
-  - **Option 12**: AA00 only — **Account + nested Customer Creation**
-    - **AASC** — Account creation (screen `COACTADU` → RPC `COACTADA`)
-      - **Inside AASC**, **AASD** is invoked for Customer creation (screen `COCUSTADU` → RPC `COCUSTADA`)
-      - Ensures every new account automatically creates its primary customer as part of the same transactional flow
-- ⚠️ `COACTUPS` / `COACTUPU` implement View/Update via RPC-to-RPC  
-- ⚠️ Note: The RPC chain programs temporarily expose the COMMAREA in the CICS region to allow inspection of available API data during execution. This is necessary because the data is too large for a single screen, and RPCs must remain stateless and not return to a different screen.
+### Admin Menu
+✅ All options functional
+
+### User Menu
+✅ **Options 01–05**: Functional using VSAM backend
+
+✅ **Transaction Screens (COTRN00U/A, COTRN01U/A, COTRN02U/A)**: Use DB2 backend via RPC as shown in the architecture diagram
+
+⚠️ **RPC-to-RPC Chain**: `COCRDSLL` → `COACTVWL` implements reverse API lookup (Card → Account via RPC-to-RPC)
 
 ## Program & Dataset Structure
 
-| Program Type     | Naming Convention | Folder/Location     | Description                                      |
-|------------------|-------------------|----------------------|--------------------------------------------------|
-| Screens          | `COxxxxxS`        | `cbl-src`            | CICS screen logic                                |
-| RPC (VSAM)       | `COxxxxxL`        | `cbl-rpc`            | Business logic using VSAM                        |
-| DB2 Direct       | `COxxxxxD`        | `cbl-db2`            | Programs that access DB2 directly                |
-| Screens (DB2)    | `COxxxxxU`        | `cbl-src-db2`        | CICS screens that call DB2-enabled RPC programs  |
-| RPC (DB2)        | `COxxxxxA`        | `cbl-rpc-db2`        | RPC programs using DB2                           |
-| Copybooks        | -                 | `app/cpy`            | all copybooks remain under `app/cpy`             |
-| Copy BMS         | -                 | `app/cpy-bms`        | BMS copybook definitions (mapset copybooks)      |
-| BMS Mapsets      | -                 | `app/bms`            | BMS mapset macros                                |
+| Program Type | Naming Convention | Folder/Location | Description |
+|--------------|-------------------|-----------------|-------------|
+| Screens (VSAM) | `COxxxxxS` | `cbl-src` | CICS screen logic calling VSAM RPCs |
+| RPC (VSAM) | `COxxxxxL` | `cbl-rpc` | Business logic using VSAM |
+| Screens (DB2) | `COxxxxxU` | `cbl-src-db2` | CICS screens that call DB2-enabled RPC programs |
+| RPC (DB2) | `COxxxxxA` | `cbl-rpc-db2` | RPC programs using DB2 |
+| Copybooks | - | `app/cpy` | All copybooks |
+| Copy BMS | - | `app/cpy-bms` | BMS copybook definitions (mapset copybooks) |
+| BMS Mapsets | - | `app/bms` | BMS mapset macros |
 
 ## DB2 Schema
 
-* All DB2 tables are defined under the schema: `ALAINL` in the programs, these must be changed to `<your-schema>`
+All DB2 tables are defined under the schema: **ALAINL**
+
+**Important:** In the programs, these must be changed to `<your-schema>`
 
 ## Source Location
 
-- COBOL source code (screen, RPC, DB2) is organized by function in:
-  - `cbl-src`  
-  - `cbl-rpc`  
-  - `cbl-db2`  
-  - `cbl-src-db2`  
-  - `cbl-rpc-db2`  
-- Copybooks remain under:  
-  - `app/cpy`  
-  - `app/cpy-bms` (BMS copybook definitions)  
-  - `app/bms` (BMS mapsets)  
+COBOL source code is organized by function in:
+- `cbl-src` (VSAM screen programs)
+- `cbl-rpc` (VSAM RPC programs)
+- `cbl-src-db2` (DB2 screen programs)
+- `cbl-rpc-db2` (DB2 RPC programs)
+
+Copybooks remain under:
+- `app/cpy`
+- `app/cpy-bms` (BMS copybook definitions)
+- `app/bms` (BMS mapsets)
 
 ## DB2 Environment Setup
 
 ### Prerequisites
 
-To run the DB2 variants (AD00 and AA00), you need to establish a proper DB2 environment. The following setup is required:
+To run the DB2 components (transaction-related screens), you need to establish a proper DB2 environment.
 
 ### DB2 Configuration Steps
 
-1. **Create DB2 Entry**: Create a DB2ENTRY in your CICS region with the same name as your schema (`ALAINL`)
+1. **Create DB2 Entry**: Create a `DB2ENTRY` in your CICS region with the same name as your schema (`ALAINL`)
 
-2. **Thread Limit**: Set the thread limit to at least 50 to ensure adequate connection pooling
+2. **Thread Limit**: Set the thread limit to at least **50** to ensure adequate connection pooling
 
-3. **CICS Resource Definitions**: Use CEDA to define and install:
-   - All PROGRAMS for the respective variants
-   - Compile the CSUTLDPL date utility 
-   - All TRANSACTIONS 
-   - All MAPSETs related to User Menu option 8, 11 and 12
-   - DB2TRANSACTION pointing to your DB2ENTRY
-   - **Important**: Due to the pseudoconversational nature of the application, previous transactions (such as Signon, UserMenu, or AdminMenu) may retain control even after transferring control to subsequent programs. This can persist until a transaction change occurs. To prevent DB2 authorization issues, create DB2TRANSACTION definitions for all transactions in the flow, not just the DB2-accessing programs.    
-   - Ensure resources are installed under your CICS group
-   - After compiling the programs, REBIND the associated DB2 packages
-   - NEWCOPY all modified program objects in CICS
+3. **CICS Resource Definitions**: Use `CEDA` to define and install:
+   - All `PROGRAMS` for AL00
+   - Compile the `CSUTLDPL` date utility
+   - All `TRANSACTIONS`
+   - All `MAPSETs` related to the application
+   - `DB2TRANSACTION` pointing to your `DB2ENTRY`
 
-### Database Schema Creation
+   **Important:** Due to the pseudoconversational nature of the application, previous transactions (such as Signon, UserMenu, or AdminMenu) may retain control even after transferring control to subsequent programs. This can persist until a transaction change occurs. To prevent DB2 authorization issues, create `DB2TRANSACTION` definitions for all transactions in the flow, not just the DB2-accessing programs.
+
+4. Ensure resources are installed under your CICS group
+
+5. After compiling the programs, **REBIND** the associated DB2 packages
+
+6. **NEWCOPY** all modified program objects in CICS
+
+## Database Schema Creation
 
 The following SQL script creates the complete database schema for the CardDemo application:
 
@@ -265,6 +269,9 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.TRANSACT TO PUBLIC;
 -- =================================================================
 -- Sample Test Data - Individual INSERT statements
 -- Based on actual copybook field definitions
+-- 
+-- NOTE: Account-to-Card relationship is 1:1
+-- Each account has exactly one card
 -- =================================================================
 
 -- Customer data - individual inserts
@@ -286,16 +293,10 @@ INSERT INTO <your-schema>.ACCTDAT VALUES
     (00000000002, 'Y', -250.75, 3000.00, 500.00, '2019-06-20', '2024-06-20', '2022-06-20', 200.00, 450.75, '54321', 'SILVER');
 
 INSERT INTO <your-schema>.ACCTDAT VALUES 
-    (00000000012, 'Y', 1200.00, 4000.00, 800.00, '2021-03-15', '2026-03-15', '2023-03-15', 150.00, 50.00, '54321', 'PLATINUM');
-
-INSERT INTO <your-schema>.ACCTDAT VALUES 
-    (00000000022, 'Y', 950.00, 3500.00, 600.00, '2022-07-10', '2027-07-10', '2024-07-10', 300.00, 100.00, '54321', 'DIAMOND');
-
-INSERT INTO <your-schema>.ACCTDAT VALUES 
     (00000000003, 'N', 0.00, 2000.00, 200.00, '2021-12-05', '2026-12-05', '2024-12-05', 0.00, 0.00, '67890', 'BRONZE');
 
 
--- Card data - individual inserts
+-- Card data - individual inserts (1:1 with accounts)
 INSERT INTO <your-schema>.CARDDAT VALUES 
     ('4444000000000001', 00000000001, 'Y', 123, 'JOHN Q DOE', '2025-12-31', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
 
@@ -303,31 +304,19 @@ INSERT INTO <your-schema>.CARDDAT VALUES
     ('4444000000000002', 00000000002, 'Y', 456, 'JANE SMITH', '2026-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
 
 INSERT INTO <your-schema>.CARDDAT VALUES 
-    ('4444000000000032', 00000000012, 'Y', 789, 'JANE SMITH', '2027-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
-
-INSERT INTO <your-schema>.CARDDAT VALUES 
-    ('4444000000000042', 00000000022, 'Y', 234, 'JANE SMITH', '2028-06-30', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
-
-INSERT INTO <your-schema>.CARDDAT VALUES 
     ('4444000000000003', 00000000003, 'N', 789, 'BOB R JOHNSON', '2024-03-31', CURRENT_DATE, CURRENT_TIME, 'ADMIN', NULL, NULL, NULL);
 
 
--- Cross-reference data - individual inserts
+-- Cross-reference data - individual inserts (1:1 account:card)
 INSERT INTO <your-schema>.CXACAIX VALUES 
     (00000000001, '4444000000000001', 000000001);
 
--- Jane's cards linked to Jane
 INSERT INTO <your-schema>.CXACAIX VALUES 
     (00000000002, '4444000000000002', 000000002);
 
 INSERT INTO <your-schema>.CXACAIX VALUES 
-    (00000000012, '4444000000000032', 000000002);
-
-INSERT INTO <your-schema>.CXACAIX VALUES 
-    (00000000022, '4444000000000042', 000000002);
-
-INSERT INTO <your-schema>.CXACAIX VALUES 
     (00000000003, '4444000000000003', 000000003);
+
 
 -- Transaction data - sample inserts (10 essential transactions)
 
@@ -367,6 +356,4 @@ GRANT ALL ON <your-schema>.CUSTDAT TO PUBLIC;
 GRANT ALL ON <your-schema>.CXACAIX TO PUBLIC;
 GRANT ALL ON <your-schema>.TRANSACT TO PUBLIC;
 GRANT EXECUTE ON PLAN <your-schema> TO <your-schema>;
-
 ```
-

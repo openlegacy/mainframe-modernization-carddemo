@@ -1,19 +1,3 @@
-      ******************************************************************
-      * Copyright Amazon.com, Inc. or its affiliates.                   
-      * All Rights Reserved.                                            
-      *                                                                 
-      * Licensed under the Apache License, Version 2.0 (the "License"). 
-      * You may not use this file except in compliance with the License.
-      * You may obtain a copy of the License at                         
-      *                                                                 
-      *    http://www.apache.org/licenses/LICENSE-2.0                   
-      *                                                                 
-      * Unless required by applicable law or agreed to in writing,      
-      * software distributed under the License is distributed on an     
-      * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,    
-      * either express or implied. See the License for the specific     
-      * language governing permissions and limitations under the License
-      ****************************************************************** 
        01  CCRDSLAI.
            02  FILLER PIC X(12).
            02  TRNNAMEL    COMP  PIC  S9(4).
@@ -52,12 +36,6 @@
              03 CURTIMEA    PICTURE X.
            02  FILLER   PICTURE X(4).
            02  CURTIMEI  PIC X(8).
-           02  ACCTSIDL    COMP  PIC  S9(4).
-           02  ACCTSIDF    PICTURE X.
-           02  FILLER REDEFINES ACCTSIDF.
-             03 ACCTSIDA    PICTURE X.
-           02  FILLER   PICTURE X(4).
-           02  ACCTSIDI  PIC X(11).
            02  CARDSIDL    COMP  PIC  S9(4).
            02  CARDSIDF    PICTURE X.
            02  FILLER REDEFINES CARDSIDF.
@@ -88,6 +66,72 @@
              03 EXPYEARA    PICTURE X.
            02  FILLER   PICTURE X(4).
            02  EXPYEARI  PIC X(4).
+           02  ACCTSIDL    COMP  PIC  S9(4).
+           02  ACCTSIDF    PICTURE X.
+           02  FILLER REDEFINES ACCTSIDF.
+             03 ACCTSIDA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACCTSIDI  PIC X(11).
+           02  ACSTTUSL    COMP  PIC  S9(4).
+           02  ACSTTUSF    PICTURE X.
+           02  FILLER REDEFINES ACSTTUSF.
+             03 ACSTTUSA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACSTTUSI  PIC X(1).
+           02  ADTOPENL    COMP  PIC  S9(4).
+           02  ADTOPENF    PICTURE X.
+           02  FILLER REDEFINES ADTOPENF.
+             03 ADTOPENA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ADTOPENI  PIC X(10).
+           02  ACRDLIML    COMP  PIC  S9(4).
+           02  ACRDLIMF    PICTURE X.
+           02  FILLER REDEFINES ACRDLIMF.
+             03 ACRDLIMA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACRDLIMI  PIC X(15).
+           02  AEXPDTL    COMP  PIC  S9(4).
+           02  AEXPDTF    PICTURE X.
+           02  FILLER REDEFINES AEXPDTF.
+             03 AEXPDTA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  AEXPDTI  PIC X(10).
+           02  ACSHLIML    COMP  PIC  S9(4).
+           02  ACSHLIMF    PICTURE X.
+           02  FILLER REDEFINES ACSHLIMF.
+             03 ACSHLIMA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACSHLIMI  PIC X(15).
+           02  AREISDTL    COMP  PIC  S9(4).
+           02  AREISDTF    PICTURE X.
+           02  FILLER REDEFINES AREISDTF.
+             03 AREISDTA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  AREISDTI  PIC X(10).
+           02  ACURBALL    COMP  PIC  S9(4).
+           02  ACURBALF    PICTURE X.
+           02  FILLER REDEFINES ACURBALF.
+             03 ACURBALA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACURBALI  PIC X(15).
+           02  ACRCYCRL    COMP  PIC  S9(4).
+           02  ACRCYCRF    PICTURE X.
+           02  FILLER REDEFINES ACRCYCRF.
+             03 ACRCYCRA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACRCYCRI  PIC X(15).
+           02  AADDGRPL    COMP  PIC  S9(4).
+           02  AADDGRPF    PICTURE X.
+           02  FILLER REDEFINES AADDGRPF.
+             03 AADDGRPA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  AADDGRPI  PIC X(10).
+           02  ACRCYDBL    COMP  PIC  S9(4).
+           02  ACRCYDBF    PICTURE X.
+           02  FILLER REDEFINES ACRCYDBF.
+             03 ACRCYDBA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACRCYDBI  PIC X(15).
            02  INFOMSGL    COMP  PIC  S9(4).
            02  INFOMSGF    PICTURE X.
            02  FILLER REDEFINES INFOMSGF.
@@ -145,12 +189,6 @@
            02  CURTIMEV    PICTURE X.
            02  CURTIMEO  PIC X(8).
            02  FILLER PICTURE X(3).
-           02  ACCTSIDC    PICTURE X.
-           02  ACCTSIDP    PICTURE X.
-           02  ACCTSIDH    PICTURE X.
-           02  ACCTSIDV    PICTURE X.
-           02  ACCTSIDO  PIC X(11).
-           02  FILLER PICTURE X(3).
            02  CARDSIDC    PICTURE X.
            02  CARDSIDP    PICTURE X.
            02  CARDSIDH    PICTURE X.
@@ -180,6 +218,72 @@
            02  EXPYEARH    PICTURE X.
            02  EXPYEARV    PICTURE X.
            02  EXPYEARO  PIC X(4).
+           02  FILLER PICTURE X(3).
+           02  ACCTSIDC    PICTURE X.
+           02  ACCTSIDP    PICTURE X.
+           02  ACCTSIDH    PICTURE X.
+           02  ACCTSIDV    PICTURE X.
+           02  ACCTSIDO  PIC X(11).
+           02  FILLER PICTURE X(3).
+           02  ACSTTUSC    PICTURE X.
+           02  ACSTTUSP    PICTURE X.
+           02  ACSTTUSH    PICTURE X.
+           02  ACSTTUSV    PICTURE X.
+           02  ACSTTUSO  PIC X(1).
+           02  FILLER PICTURE X(3).
+           02  ADTOPENC    PICTURE X.
+           02  ADTOPENP    PICTURE X.
+           02  ADTOPENH    PICTURE X.
+           02  ADTOPENV    PICTURE X.
+           02  ADTOPENO  PIC X(10).
+           02  FILLER PICTURE X(3).
+           02  ACRDLIMC    PICTURE X.
+           02  ACRDLIMP    PICTURE X.
+           02  ACRDLIMH    PICTURE X.
+           02  ACRDLIMV    PICTURE X.
+           02  ACRDLIMO PIC +ZZZ,ZZZ,ZZZ.99.
+           02  FILLER PICTURE X(3).
+           02  AEXPDTC    PICTURE X.
+           02  AEXPDTP    PICTURE X.
+           02  AEXPDTH    PICTURE X.
+           02  AEXPDTV    PICTURE X.
+           02  AEXPDTO  PIC X(10).
+           02  FILLER PICTURE X(3).
+           02  ACSHLIMC    PICTURE X.
+           02  ACSHLIMP    PICTURE X.
+           02  ACSHLIMH    PICTURE X.
+           02  ACSHLIMV    PICTURE X.
+           02  ACSHLIMO PIC +ZZZ,ZZZ,ZZZ.99.
+           02  FILLER PICTURE X(3).
+           02  AREISDTC    PICTURE X.
+           02  AREISDTP    PICTURE X.
+           02  AREISDTH    PICTURE X.
+           02  AREISDTV    PICTURE X.
+           02  AREISDTO  PIC X(10).
+           02  FILLER PICTURE X(3).
+           02  ACURBALC    PICTURE X.
+           02  ACURBALP    PICTURE X.
+           02  ACURBALH    PICTURE X.
+           02  ACURBALV    PICTURE X.
+           02  ACURBALO PIC +ZZZ,ZZZ,ZZZ.99.
+           02  FILLER PICTURE X(3).
+           02  ACRCYCRC    PICTURE X.
+           02  ACRCYCRP    PICTURE X.
+           02  ACRCYCRH    PICTURE X.
+           02  ACRCYCRV    PICTURE X.
+           02  ACRCYCRO PIC +ZZZ,ZZZ,ZZZ.99.
+           02  FILLER PICTURE X(3).
+           02  AADDGRPC    PICTURE X.
+           02  AADDGRPP    PICTURE X.
+           02  AADDGRPH    PICTURE X.
+           02  AADDGRPV    PICTURE X.
+           02  AADDGRPO  PIC X(10).
+           02  FILLER PICTURE X(3).
+           02  ACRCYDBC    PICTURE X.
+           02  ACRCYDBP    PICTURE X.
+           02  ACRCYDBH    PICTURE X.
+           02  ACRCYDBV    PICTURE X.
+           02  ACRCYDBO PIC +ZZZ,ZZZ,ZZZ.99.
            02  FILLER PICTURE X(3).
            02  INFOMSGC    PICTURE X.
            02  INFOMSGP    PICTURE X.

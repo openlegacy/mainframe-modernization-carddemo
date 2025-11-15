@@ -3,6 +3,8 @@
       * Layer:       Screen logic (UI only)                          *
       * Function:    Accept and process credit card detail request    *
       *              Screen interactions only - calls COCRDSLL for DB *
+      *              Displays card data PLUS account data via         *
+      *              reverse API                                      *
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -57,10 +59,6 @@
            88  INPUT-OK                            VALUE '0'.
            88  INPUT-ERROR                         VALUE '1'.
            88  INPUT-PENDING                       VALUE LOW-VALUES.
-         05  WS-EDIT-ACCT-FLAG                     PIC X(1).
-           88  FLG-ACCTFILTER-NOT-OK               VALUE '0'.
-           88  FLG-ACCTFILTER-ISVALID              VALUE '1'.
-           88  FLG-ACCTFILTER-BLANK                VALUE ' '.
          05  WS-EDIT-CARD-FLAG                     PIC X(1).
            88  FLG-CARDFILTER-NOT-OK               VALUE '0'.
            88  FLG-CARDFILTER-ISVALID             VALUE '1'.
@@ -74,17 +72,14 @@
          05  WS-ERR-FLG                            PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                                    VALUE 'Y'.
            88 ERR-FLG-OFF                                   VALUE 'N'.
+         05  WS-ACCOUNT-DATA-FLAG                  PIC X(01) VALUE 'N'.
+           88 ACCOUNT-DATA-RECEIVED                         VALUE 'Y'.
+           88 ACCOUNT-DATA-NOT-RECEIVED                     VALUE 'N'.
 
       ******************************************************************
       * Output edits
       ******************************************************************
          05 CICS-OUTPUT-EDIT-VARS.
-           10  CARD-ACCT-ID-X                      PIC X(11).
-           10  CARD-ACCT-ID-N REDEFINES CARD-ACCT-ID-X
-                                                   PIC 9(11).
-           10  CARD-CVV-CD-X                       PIC X(03).
-           10  CARD-CVV-CD-N REDEFINES  CARD-CVV-CD-X
-                                                   PIC 9(03).
            10  CARD-CARD-NUM-X                     PIC X(16).
            10  CARD-CARD-NUM-N REDEFINES  CARD-CARD-NUM-X
                                                    PIC 9(16).
@@ -109,33 +104,23 @@
            88  FOUND-CARDS-FOR-ACCOUNT             VALUE
                '   Displaying requested details'.
            88  WS-PROMPT-FOR-INPUT                 VALUE
-               'Please enter Account and Card Number'.
+               'Please enter Card Number'.
 
          05  WS-RETURN-MSG                         PIC X(75).
            88  WS-RETURN-MSG-OFF                   VALUE SPACES.
            88  WS-EXIT-MESSAGE                     VALUE
                'PF03 pressed.Exiting              '.
-           88  WS-PROMPT-FOR-ACCT                  VALUE
-               'Account number not provided'.
            88  WS-PROMPT-FOR-CARD                  VALUE
                'Card number not provided'.
            88  NO-SEARCH-CRITERIA-RECEIVED         VALUE
                'No input received'.
-           88  SEARCHED-ACCT-ZEROES                VALUE
-               'Account number must be a non zero 11 digit number'.
-           88  SEARCHED-ACCT-NOT-NUMERIC           VALUE
-               'Account number must be a non zero 11 digit number'.
            88  SEARCHED-CARD-NOT-NUMERIC           VALUE
-               'Card number if supplied must be a 16 digit number'.
+               'Card number must be a 16 digit number'.
 
-           88  DID-NOT-FIND-ACCT-IN-CARDXREF       VALUE
-               'Did not find this account in cards database'.
            88  DID-NOT-FIND-ACCTCARD-COMBO         VALUE
-               'Did not find cards for this search condition'.
+               'Did not find card'.
            88  XREF-READ-ERROR                     VALUE
                'Error reading Card Data File'.
-           88  CODING-TO-BE-DONE                   VALUE
-               'Looks Good.... so far'.
 
       ******************************************************************
       *      Literals and Constants
@@ -148,7 +133,7 @@
           05 LIT-THISTRANID                        PIC X(4)
                                                    VALUE 'ALS6'.
           05 LIT-THISMAPSET                        PIC X(8)
-                                                   VALUE 'COCRDSL '.
+                                                   VALUE 'COCRDS2 '.
           05 LIT-THISMAP                           PIC X(7)
                                                    VALUE 'CCRDSLA'.
           05 LIT-CCLISTPGM                         PIC X(8)
@@ -184,13 +169,9 @@
 
        01  WS-COMMAREA                             PIC X(2000).
 
-      * RPC Communication Area for card lookup
+      * RPC Communication Area for card lookup WITH ACCOUNT DATA
        01 WS-RPC-COMMAREA.
-           05 LK-OPERATION               PIC X(01).
-               88 LK-OP-LOOKUP-CARD      VALUE 'L'.
-               88 LK-OP-LOOKUP-ACCT      VALUE 'A'.
            05 LK-INPUT-CRITERIA.
-               10 LK-IN-ACCT-ID             PIC 9(11).
                10 LK-IN-CARD-NUM            PIC 9(16).
            05 LK-OUTPUT-STATUS.
                10 LK-OUT-RETURN-CODE        PIC 9(02).
@@ -206,6 +187,18 @@
                10 LK-OUT-CARD-EMBOSSED-NAME PIC X(50).
                10 LK-OUT-CARD-EXPIRY-DATE   PIC X(10).
                10 LK-OUT-CARD-STATUS        PIC X(01).
+           05 LK-OUTPUT-ACCT-DATA.
+               15 LK-OUT-ACCT-ID              PIC X(11).
+               15 LK-OUT-ACCT-ACTIVE-STATUS   PIC X(01).
+               15 LK-OUT-ACCT-CREDIT-LIMIT    PIC S9(10)V99.
+               15 LK-OUT-ACCT-CASH-LIMIT      PIC S9(10)V99.
+               15 LK-OUT-ACCT-CURR-BAL        PIC S9(10)V99.
+               15 LK-OUT-ACCT-CURR-CYC-CREDIT PIC S9(10)V99.
+               15 LK-OUT-ACCT-CURR-CYC-DEBIT  PIC S9(10)V99.
+               15 LK-OUT-ACCT-OPEN-DATE       PIC X(10).
+               15 LK-OUT-ACCT-EXPIRATION-DATE PIC X(10).
+               15 LK-OUT-ACCT-REISSUE-DATE    PIC X(10).
+               15 LK-OUT-ACCT-GROUP-ID        PIC X(10).
 
       *IBM SUPPLIED COPYBOOKS
        COPY DFHBMSCA.
@@ -215,7 +208,7 @@
       *Screen Titles
        COPY COTTL01Y.
       *Credit Card Search Screen Layout
-       COPY COCRDSL.
+       COPY COCRDS2.
 
       *Current Date
        COPY CSDAT01Y.
@@ -251,6 +244,7 @@
            INITIALIZE CC-WORK-AREA
                       WS-MISC-STORAGE
                       WS-COMMAREA
+
       *****************************************************************
       * Store our context
       *****************************************************************
@@ -260,6 +254,7 @@
       *****************************************************************
            SET WS-RETURN-MSG-OFF  TO TRUE
            SET ERR-FLG-OFF TO TRUE
+           SET ACCOUNT-DATA-NOT-RECEIVED TO TRUE
       *****************************************************************
       * Store passed data if  any                *
       *****************************************************************
@@ -337,7 +332,6 @@
               WHEN CDEMO-PGM-ENTER
                AND CDEMO-FROM-PROGRAM  EQUAL LIT-CCLISTPGM
                    SET INPUT-OK TO TRUE
-                   MOVE CDEMO-ACCT-ID       TO CC-ACCT-ID-N
                    MOVE CDEMO-CARD-NUM      TO CC-CARD-NUM-N
                    PERFORM LOOKUP-CARD-VIA-RPC
                    PERFORM 1000-SEND-MAP
@@ -410,10 +404,10 @@
       *----------------------------------------------------------------*
        LOOKUP-CARD-VIA-RPC.
 
-           MOVE SPACES TO LK-INPUT-CRITERIA LK-OUTPUT-STATUS
+           MOVE SPACES TO LK-INPUT-CRITERIA
+                          LK-OUTPUT-STATUS
                           LK-OUTPUT-CARD-DATA
-           SET LK-OP-LOOKUP-CARD TO TRUE
-           MOVE CC-ACCT-ID-N TO LK-IN-ACCT-ID
+                          LK-OUTPUT-ACCT-DATA
            MOVE CC-CARD-NUM-N TO LK-IN-CARD-NUM
 
            PERFORM CALL-RPC-PROGRAM
@@ -428,10 +422,15 @@
                             CARD-EXPIRAION-DATE
                        MOVE LK-OUT-CARD-STATUS TO
                             CARD-ACTIVE-STATUS
+      *                Check if we got account data back
+                       IF LK-OUT-ACCT-ID NOT = SPACES
+                       AND LK-OUT-ACCT-ID NOT = LOW-VALUES
+                           SET ACCOUNT-DATA-RECEIVED TO TRUE
+                       END-IF
                    WHEN RC-NOT-FOUND
-                       SET DID-NOT-FIND-ACCTCARD-COMBO TO TRUE
+                        SET DID-NOT-FIND-ACCTCARD-COMBO TO TRUE
                    WHEN OTHER
-                       MOVE LK-OUT-MESSAGE TO WS-RETURN-MSG
+                        MOVE LK-OUT-MESSAGE TO WS-RETURN-MSG
                END-EVALUATE
            END-IF.
 
@@ -450,11 +449,11 @@
            MOVE WS-RESP-CD TO WS-RESP-DISP
            MOVE WS-REAS-CD TO WS-REAS-DISP.
 
-
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)
                    CONTINUE
                WHEN DFHRESP(PGMIDERR)
+                   SET ERR-FLG-ON TO TRUE
                    MOVE 'COCRDSLL program not found' TO WS-RETURN-MSG
                WHEN OTHER
                    SET ERR-FLG-ON TO TRUE
@@ -511,18 +510,13 @@
            IF EIBCALEN = 0
               SET  WS-PROMPT-FOR-INPUT TO TRUE
            ELSE
-              IF CDEMO-ACCT-ID = 0
-                 MOVE LOW-VALUES   TO ACCTSIDO OF CCRDSLAO
-              ELSE
-                 MOVE CC-ACCT-ID   TO ACCTSIDO OF CCRDSLAO
-              END-IF
-
               IF CDEMO-CARD-NUM = 0
                 MOVE LOW-VALUES   TO CARDSIDO OF CCRDSLAO
               ELSE
                 MOVE CC-CARD-NUM  TO CARDSIDO OF CCRDSLAO
               END-IF
 
+      *       DISPLAY CARD DATA
               IF FOUND-CARDS-FOR-ACCOUNT
                  MOVE CARD-EMBOSSED-NAME
                                         TO CRDNAMEO OF CCRDSLAO
@@ -534,6 +528,38 @@
                  MOVE CARD-EXPIRY-YEAR  TO EXPYEARO OF CCRDSLAO
 
                  MOVE CARD-ACTIVE-STATUS TO CRDSTCDO OF CCRDSLAO
+              END-IF
+
+      *       DISPLAY ACCOUNT DATA IF RECEIVED
+              IF ACCOUNT-DATA-RECEIVED
+                 MOVE LK-OUT-ACCT-ID TO ACCTSIDO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-ACTIVE-STATUS
+                                     TO ACSTTUSO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-CURR-BAL
+                                     TO ACURBALO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-CREDIT-LIMIT
+                                     TO ACRDLIMO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-CASH-LIMIT
+                                     TO ACSHLIMO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-CURR-CYC-CREDIT
+                                     TO ACRCYCRO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-CURR-CYC-DEBIT
+                                     TO ACRCYDBO OF CCRDSLAO
+
+                 MOVE LK-OUT-ACCT-OPEN-DATE
+                                     TO ADTOPENO OF CCRDSLAO
+                 MOVE LK-OUT-ACCT-EXPIRATION-DATE
+                                     TO AEXPDTO OF CCRDSLAO
+                 MOVE LK-OUT-ACCT-REISSUE-DATE
+                                     TO AREISDTO OF CCRDSLAO
+                 MOVE LK-OUT-ACCT-GROUP-ID
+                                     TO AADDGRPO OF CCRDSLAO
               END-IF
             END-IF
 
@@ -556,44 +582,28 @@
       *    PROTECT OR UNPROTECT BASED ON CONTEXT
            IF  CDEMO-LAST-MAPSET  EQUAL LIT-CCLISTMAPSET
            AND CDEMO-FROM-PROGRAM EQUAL LIT-CCLISTPGM
-              MOVE DFHBMPRF     TO ACCTSIDA OF CCRDSLAI
               MOVE DFHBMPRF     TO CARDSIDA OF CCRDSLAI
            ELSE
-              MOVE DFHBMFSE      TO ACCTSIDA OF CCRDSLAI
               MOVE DFHBMFSE      TO CARDSIDA OF CCRDSLAI
            END-IF
 
       *    POSITION CURSOR
            EVALUATE TRUE
-              WHEN FLG-ACCTFILTER-NOT-OK
-              WHEN FLG-ACCTFILTER-BLANK
-                   MOVE -1             TO ACCTSIDL OF CCRDSLAI
               WHEN FLG-CARDFILTER-NOT-OK
               WHEN FLG-CARDFILTER-BLANK
                    MOVE -1             TO CARDSIDL OF CCRDSLAI
               WHEN OTHER
-                   MOVE -1             TO ACCTSIDL OF CCRDSLAI
+                   MOVE -1             TO CARDSIDL OF CCRDSLAI
            END-EVALUATE
 
       *    SETUP COLOR
            IF  CDEMO-LAST-MAPSET   EQUAL LIT-CCLISTMAPSET
            AND CDEMO-FROM-PROGRAM  EQUAL LIT-CCLISTPGM
-              MOVE DFHDFCOL     TO ACCTSIDC OF CCRDSLAO
               MOVE DFHDFCOL     TO CARDSIDC OF CCRDSLAO
-           END-IF
-
-           IF FLG-ACCTFILTER-NOT-OK
-              MOVE DFHRED              TO ACCTSIDC OF CCRDSLAO
            END-IF
 
            IF FLG-CARDFILTER-NOT-OK
               MOVE DFHRED              TO CARDSIDC OF CCRDSLAO
-           END-IF
-
-           IF  FLG-ACCTFILTER-BLANK
-           AND CDEMO-PGM-REENTER
-               MOVE '*'                TO ACCTSIDO OF CCRDSLAO
-               MOVE DFHRED             TO ACCTSIDC OF CCRDSLAO
            END-IF
 
            IF  FLG-CARDFILTER-BLANK
@@ -661,16 +671,8 @@
 
            SET INPUT-OK                  TO TRUE
            SET FLG-CARDFILTER-ISVALID    TO TRUE
-           SET FLG-ACCTFILTER-ISVALID    TO TRUE
 
       *    REPLACE * WITH LOW-VALUES
-           IF  ACCTSIDI OF CCRDSLAI = '*'
-           OR  ACCTSIDI OF CCRDSLAI = SPACES
-               MOVE LOW-VALUES           TO  CC-ACCT-ID
-           ELSE
-               MOVE ACCTSIDI OF CCRDSLAI TO  CC-ACCT-ID
-           END-IF
-
            IF  CARDSIDI OF CCRDSLAI = '*'
            OR  CARDSIDI OF CCRDSLAI = SPACES
                MOVE LOW-VALUES           TO  CC-CARD-NUM
@@ -679,58 +681,16 @@
            END-IF
 
       *    INDIVIDUAL FIELD EDITS
-           PERFORM 2210-EDIT-ACCOUNT
-              THRU 2210-EDIT-ACCOUNT-EXIT
-
            PERFORM 2220-EDIT-CARD
               THRU 2220-EDIT-CARD-EXIT
 
       *    CROSS FIELD EDITS
-           IF  FLG-ACCTFILTER-BLANK
-           AND FLG-CARDFILTER-BLANK
+           IF  FLG-CARDFILTER-BLANK
                SET NO-SEARCH-CRITERIA-RECEIVED TO TRUE
            END-IF
            .
 
        2200-EDIT-MAP-INPUTS-EXIT.
-           EXIT
-           .
-
-       2210-EDIT-ACCOUNT.
-           SET FLG-ACCTFILTER-NOT-OK TO TRUE
-
-      *    Not supplied
-           IF CC-ACCT-ID   EQUAL LOW-VALUES
-           OR CC-ACCT-ID   EQUAL SPACES
-           OR CC-ACCT-ID-N EQUAL ZEROS
-              SET INPUT-ERROR           TO TRUE
-              SET FLG-ACCTFILTER-BLANK  TO TRUE
-              IF WS-RETURN-MSG-OFF
-                 SET WS-PROMPT-FOR-ACCT TO TRUE
-              END-IF
-              MOVE ZEROES       TO CDEMO-ACCT-ID
-              GO TO  2210-EDIT-ACCOUNT-EXIT
-           END-IF
-      *
-      *    Not numeric
-      *    Not 11 characters
-           IF CC-ACCT-ID  IS NOT NUMERIC
-              SET INPUT-ERROR TO TRUE
-              SET FLG-ACCTFILTER-NOT-OK TO TRUE
-              IF WS-RETURN-MSG-OFF
-                MOVE
-              'ACCOUNT FILTER,IF SUPPLIED MUST BE A 11 DIGIT NUMBER'
-                              TO WS-RETURN-MSG
-              END-IF
-              MOVE ZERO       TO CDEMO-ACCT-ID
-              GO TO 2210-EDIT-ACCOUNT-EXIT
-           ELSE
-              MOVE CC-ACCT-ID TO CDEMO-ACCT-ID
-              SET FLG-ACCTFILTER-ISVALID TO TRUE
-           END-IF
-           .
-
-       2210-EDIT-ACCOUNT-EXIT.
            EXIT
            .
 
@@ -760,7 +720,7 @@
               SET FLG-CARDFILTER-NOT-OK TO TRUE
               IF WS-RETURN-MSG-OFF
                  MOVE
-              'CARD ID FILTER,IF SUPPLIED MUST BE A 16 DIGIT NUMBER'
+              'Card number must be a 16 digit number'
                               TO WS-RETURN-MSG
               END-IF
               MOVE ZERO       TO CDEMO-CARD-NUM
