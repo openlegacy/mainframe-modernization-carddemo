@@ -17,10 +17,20 @@
 
        01 WS-VARIABLES.
          05 WS-PGMNAME                 PIC X(08) VALUE 'COTRN02A'.
+         05 WS-CXACAIX-FILE            PIC X(08) VALUE 'CXACAIX '.
+         05 WS-CCXREF-FILE             PIC X(08) VALUE 'CCXREF  '.
 
        01 WS-DISPLAY-WORK-FIELDS.
          05 WS-SQLCODE-DISPLAY         PIC S9(9).
          05 WS-RESP-MSG                PIC X(80) VALUE SPACES.
+
+
+       01 WS-CICS-FIELDS.
+         05 WS-RESP-CD                 PIC S9(09) COMP VALUE ZEROS.
+         05 WS-REAS-CD                 PIC S9(09) COMP VALUE ZEROS.
+
+         05 WS-RESP-DISP               PIC S9(09) VALUE ZEROS.
+         05 WS-REAS-DISP               PIC S9(09) VALUE ZEROS.
 
       *----------------------------------------------------------------*
       *                     DB2 HOST VARIABLES
@@ -102,6 +112,7 @@
        COPY CVTRA05Y.
        COPY CVACT01Y.
        COPY CVACT03Y.
+       COPY DFHAID.
 
       *----------------------------------------------------------------*
       *                        LINKAGE SECTION
@@ -431,32 +442,37 @@
 
            PERFORM INSERT-TRANSACT-DB2.
 
+
       *----------------------------------------------------------------*
       *                      READ-CXACAIX-FILE
       *----------------------------------------------------------------*
        READ-CXACAIX-FILE.
-
-           MOVE XREF-ACCT-ID TO HOST-XREF-ACCT-ID
-
-           EXEC SQL
-               SELECT XREF_CARD_NUM
-               INTO :HOST-XREF-CARD-NUM
-               FROM CXACAIX
-               WHERE XREF_ACCT_ID = :HOST-XREF-ACCT-ID
+           EXEC CICS READ
+                DATASET   (WS-CXACAIX-FILE)
+                INTO      (CARD-XREF-RECORD)
+                LENGTH    (LENGTH OF CARD-XREF-RECORD)
+                RIDFLD    (XREF-ACCT-ID)
+                KEYLENGTH (LENGTH OF XREF-ACCT-ID)
+                RESP      (WS-RESP-CD)
+                RESP2     (WS-REAS-CD)
            END-EXEC
 
-           EVALUATE SQLCODE
-               WHEN 0
-                   MOVE HOST-XREF-CARD-NUM TO XREF-CARD-NUM
-               WHEN 100
+
+           MOVE  WS-RESP-CD          TO WS-RESP-DISP.
+           MOVE  WS-REAS-CD          TO WS-REAS-DISP.
+
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   CONTINUE
+               WHEN DFHRESP(NOTFND)
                    SET RPC-RESP-ACCTID-NOTFOUND TO TRUE
                    MOVE 'Account ID NOT found...' TO WS-RESP-MSG
                WHEN OTHER
                    SET RPC-RESP-WRITE-ERROR TO TRUE
-                   MOVE SQLCODE TO WS-SQLCODE-DISPLAY
-                   STRING 'Unable to lookup Acct in XREF - SQLCODE: '
+                   STRING 'Unable to lookup Acct in XREF - RESP: '
                           DELIMITED BY SIZE
-                          WS-SQLCODE-DISPLAY
+                          WS-RESP-DISP
                           DELIMITED BY SIZE
                      INTO WS-RESP-MSG
            END-EVALUATE.
@@ -465,28 +481,30 @@
       *                      READ-CCXREF-FILE
       *----------------------------------------------------------------*
        READ-CCXREF-FILE.
-
-           MOVE XREF-CARD-NUM TO HOST-XREF-CARD-NUM
-
-           EXEC SQL
-               SELECT XREF_ACCT_ID
-               INTO :HOST-XREF-ACCT-ID
-               FROM CXACAIX
-               WHERE XREF_CARD_NUM = :HOST-XREF-CARD-NUM
+           EXEC CICS READ
+                DATASET   (WS-CCXREF-FILE)
+                INTO      (CARD-XREF-RECORD)
+                LENGTH    (LENGTH OF CARD-XREF-RECORD)
+                RIDFLD    (XREF-CARD-NUM)
+                KEYLENGTH (LENGTH OF XREF-CARD-NUM)
+                RESP      (WS-RESP-CD)
+                RESP2     (WS-REAS-CD)
            END-EXEC
 
-           EVALUATE SQLCODE
-               WHEN 0
-                   MOVE HOST-XREF-ACCT-ID TO XREF-ACCT-ID
-               WHEN 100
+           MOVE  WS-RESP-CD          TO WS-RESP-DISP.
+           MOVE  WS-REAS-CD          TO WS-REAS-DISP.
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   CONTINUE
+               WHEN DFHRESP(NOTFND)
                    SET RPC-RESP-CARDNUM-NOTFOUND TO TRUE
-                   MOVE 'Card Number NOT found...' TO WS-RESP-MSG
+                   MOVE 'Card number NOT found...' TO WS-RESP-MSG
                WHEN OTHER
                    SET RPC-RESP-WRITE-ERROR TO TRUE
-                   MOVE SQLCODE TO WS-SQLCODE-DISPLAY
-                   STRING 'Unable to lookup Card in XREF - SQLCODE: '
+                   STRING 'Unable to lookup Card in XREF - RESP: '
                           DELIMITED BY SIZE
-                          WS-SQLCODE-DISPLAY
+                          WS-RESP-DISP
                           DELIMITED BY SIZE
                      INTO WS-RESP-MSG
            END-EVALUATE.
@@ -539,3 +557,4 @@
                           DELIMITED BY SIZE
                      INTO WS-RESP-MSG
            END-EVALUATE.
+
