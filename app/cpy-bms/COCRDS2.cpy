@@ -36,12 +36,24 @@
              03 CURTIMEA    PICTURE X.
            02  FILLER   PICTURE X(4).
            02  CURTIMEI  PIC X(8).
+           02  ACCTNUML    COMP  PIC  S9(4).
+           02  ACCTNUMF    PICTURE X.
+           02  FILLER REDEFINES ACCTNUMF.
+             03 ACCTNUMA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  ACCTNUMI  PIC X(11).
            02  CARDSIDL    COMP  PIC  S9(4).
            02  CARDSIDF    PICTURE X.
            02  FILLER REDEFINES CARDSIDF.
              03 CARDSIDA    PICTURE X.
            02  FILLER   PICTURE X(4).
            02  CARDSIDI  PIC X(16).
+           02  CARDNUML    COMP  PIC  S9(4).
+           02  CARDNUMF    PICTURE X.
+           02  FILLER REDEFINES CARDNUMF.
+             03 CARDNUMA    PICTURE X.
+           02  FILLER   PICTURE X(4).
+           02  CARDNUMI  PIC X(16).
            02  CRDNAMEL    COMP  PIC  S9(4).
            02  CRDNAMEF    PICTURE X.
            02  FILLER REDEFINES CRDNAMEF.
@@ -189,11 +201,23 @@
            02  CURTIMEV    PICTURE X.
            02  CURTIMEO  PIC X(8).
            02  FILLER PICTURE X(3).
+           02  ACCTNUMC    PICTURE X.
+           02  ACCTNUMP    PICTURE X.
+           02  ACCTNUMH    PICTURE X.
+           02  ACCTNUMV    PICTURE X.
+           02  ACCTNUMO  PIC X(11).
+           02  FILLER PICTURE X(3).
            02  CARDSIDC    PICTURE X.
            02  CARDSIDP    PICTURE X.
            02  CARDSIDH    PICTURE X.
            02  CARDSIDV    PICTURE X.
            02  CARDSIDO  PIC X(16).
+           02  FILLER PICTURE X(3).
+           02  CARDNUMC    PICTURE X.
+           02  CARDNUMP    PICTURE X.
+           02  CARDNUMH    PICTURE X.
+           02  CARDNUMV    PICTURE X.
+           02  CARDNUMO  PIC X(16).
            02  FILLER PICTURE X(3).
            02  CRDNAMEC    PICTURE X.
            02  CRDNAMEP    PICTURE X.

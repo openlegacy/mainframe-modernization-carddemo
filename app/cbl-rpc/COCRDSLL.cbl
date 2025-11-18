@@ -2,9 +2,10 @@
       * Program     : COCRDSLL.CBL
       * Application : CardDemo
       * Type        : COBOL RPC Program
-      * Function    : Card lookup/read with reverse API to account
-      * Description : Receives card number, returns card data
-      *               PLUS account data via reverse API call to COACTVWL
+      * Function    : Card lookup/read with optional reverse API
+      * Description : Receives account-id OR card number
+      *               - If ACCT-ID: returns card data only
+      *               - If CARD-NUM: returns card + account data via API
       ******************************************************************
       * Copyright Amazon.com, Inc. or its affiliates.
       * All Rights Reserved.
@@ -47,8 +48,13 @@
       * File access variables
        01 WS-FILE-VARS.
          05 WS-CARDFILENAME             PIC X(08) VALUE 'CARDDAT '.
+         05 WS-CARDFILENAME-ACCT-PATH   PIC X(08) VALUE 'CARDAIX '.
          05 WS-CARD-RID.
            10 WS-CARD-RID-CARDNUM       PIC X(16).
+         05 WS-CARD-RID-ACCT.
+           10 WS-CARD-RID-ACCT-ID       PIC 9(11).
+         05 WS-CARD-RID-ACCT-X REDEFINES WS-CARD-RID-ACCT.
+           10 WS-CARD-RID-ACCT-ID-X     PIC X(11).
          05 WS-FILE-ERROR-MESSAGE.
            10 FILLER                    PIC X(12)
                                         VALUE 'File Error: '.
@@ -127,6 +133,7 @@
        LINKAGE SECTION.
        01  DFHCOMMAREA.
            05  LK-INPUT-CRITERIA.
+               10  LK-IN-ACCT-ID             PIC 9(11).
                10  LK-IN-CARD-NUM            PIC 9(16).
            05  LK-OUTPUT-STATUS.
                10  LK-OUT-RETURN-CODE        PIC 9(02).
@@ -173,32 +180,42 @@
 
            MOVE SPACES TO LK-OUT-MESSAGE
 
-      *    Validate input
-           IF LK-IN-CARD-NUM = ZEROS
+      *    Validate input - must have EITHER account-id OR card number
+           IF LK-IN-ACCT-ID = ZEROS AND LK-IN-CARD-NUM = ZEROS
                SET RC-VALIDATION-ERROR TO TRUE
-               MOVE 'Card number cannot be zero'
+               MOVE 'Account ID or Card number must be provided'
                     TO LK-OUT-MESSAGE
                GOBACK
            END-IF
 
-      *    Read card data
-           MOVE LK-IN-CARD-NUM TO WS-CARD-RID-CARDNUM
-           PERFORM READ-CARD-BY-CARDNUM
+      *    Determine which lookup method to use
+           EVALUATE TRUE
+               WHEN LK-IN-CARD-NUM NOT = ZEROS
+      *            Card number provided - use primary key lookup
+      *            and fetch account data via reverse API
+                   MOVE LK-IN-CARD-NUM TO WS-CARD-RID-CARDNUM
+                   PERFORM READ-CARD-BY-CARDNUM
+                   IF NOT ERR-FLG-ON              
+                       PERFORM POPULATE-CARD-OUTPUT-DATA
+                       PERFORM CALL-COACTVWL-FOR-ACCOUNT
+                       IF NOT ERR-FLG-ON
+                           MOVE 
+                         'Card and account data retrieved successfully'
+                                TO LK-OUT-MESSAGE
+                       END-IF
+                   END-IF
 
-           IF ERR-FLG-ON
-               GOBACK
-           END-IF
-
-      *    Populate card output
-           PERFORM POPULATE-CARD-OUTPUT-DATA
-
-      *    Call reverse API for account data
-           PERFORM CALL-COACTVWL-FOR-ACCOUNT
-
-           IF NOT ERR-FLG-ON
-               MOVE 'Card and account data retrieved successfully'
-                    TO LK-OUT-MESSAGE
-           END-IF
+               WHEN LK-IN-ACCT-ID NOT = ZEROS
+      *            Account-id provided - use alternate index lookup
+      *            NO reverse API call needed
+                   MOVE LK-IN-ACCT-ID TO WS-CARD-RID-ACCT-ID
+                   PERFORM READ-CARD-BY-ACCTID
+                   IF NOT ERR-FLG-ON
+                       PERFORM POPULATE-CARD-OUTPUT-DATA
+                       MOVE 'Card data retrieved successfully'
+                            TO LK-OUT-MESSAGE
+                   END-IF
+           END-EVALUATE
 
            GOBACK.
 
@@ -236,6 +253,39 @@
            END-EVALUATE.
 
       *----------------------------------------------------------------*
+      *                      READ-CARD-BY-ACCTID
+      *----------------------------------------------------------------*
+       READ-CARD-BY-ACCTID.
+
+           EXEC CICS READ
+                FILE      (WS-CARDFILENAME-ACCT-PATH)
+                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
+                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
+                INTO      (CARD-RECORD)
+                LENGTH    (LENGTH OF CARD-RECORD)
+                RESP      (WS-RESP-CD)
+                RESP2     (WS-REAS-CD)
+           END-EXEC
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                    CONTINUE
+               WHEN DFHRESP(NOTFND)
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-NOT-FOUND TO TRUE
+                   MOVE 'Card not found for this account'
+                        TO LK-OUT-MESSAGE
+               WHEN OTHER
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-DATABASE-ERROR TO TRUE
+                   MOVE 'read'                     TO ERROR-OPNAME
+                   MOVE WS-CARDFILENAME-ACCT-PATH  TO ERROR-FILE
+                   MOVE WS-RESP-CD                 TO ERROR-RESP
+                   MOVE WS-REAS-CD                 TO ERROR-RESP2
+                   MOVE WS-FILE-ERROR-MESSAGE      TO LK-OUT-MESSAGE
+           END-EVALUATE.
+
+      *----------------------------------------------------------------*
       *                      POPULATE-CARD-OUTPUT-DATA
       *----------------------------------------------------------------*
        POPULATE-CARD-OUTPUT-DATA.
@@ -250,6 +300,7 @@
       *----------------------------------------------------------------*
       *                   CALL-COACTVWL-FOR-ACCOUNT
       *         REVERSE API - Call account read RPC program
+      *         Only called when card number was provided as input
       *----------------------------------------------------------------*
        CALL-COACTVWL-FOR-ACCOUNT.
 
