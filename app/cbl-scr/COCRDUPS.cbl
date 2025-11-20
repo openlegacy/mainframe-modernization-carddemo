@@ -299,6 +299,13 @@
                10 LK-IN-EXPIRY-MONTH     PIC X(02).
                10 LK-IN-EXPIRY-DAY       PIC X(02).
                10 LK-IN-CARD-STATUS      PIC X(01).
+           05  LK-OLD-CARD.
+               10  LK-OLD-CVV-CD          PIC X(03).
+               10  LK-OLD-CARD-NAME       PIC X(50).
+               10  LK-OLD-EXPIRY-YEAR     PIC X(04).
+               10  LK-OLD-EXPIRY-MONTH    PIC X(02).
+               10  LK-OLD-EXPIRY-DAY      PIC X(02).
+               10  LK-OLD-CARD-STATUS     PIC X(01).
            05 LK-OUTPUT-STATUS.
                10 LK-OUT-RETURN-CODE     PIC 9(02).
                    88 RC-SUCCESS         VALUE 00.
@@ -645,9 +652,6 @@
                END-IF
 
                GO TO 1200-EDIT-MAP-INPUTS-EXIT
-
-           ELSE
-               CONTINUE
            END-IF
 
       *    SEARCH KEYS ALREADY VALIDATED AND DATA FETCHED
@@ -656,6 +660,10 @@
            SET FLG-CARDFILTER-ISVALID  TO TRUE
            MOVE CCUP-OLD-ACCTID     TO CDEMO-ACCT-ID
            MOVE CCUP-OLD-CARDID     TO CDEMO-CARD-NUM
+
+      *    ENSURE BOTH SEARCH FIELDS SHOW VALID VALUES
+           MOVE CCUP-OLD-ACCTID     TO CC-ACCT-ID
+           MOVE CCUP-OLD-CARDID     TO CC-CARD-NUM
 
       *    NEW DATA IS SAME AS OLD DATA
            IF  (FUNCTION UPPER-CASE(CCUP-NEW-CARDDATA) EQUAL
@@ -701,22 +709,29 @@
        1210-EDIT-ACCOUNT.
            SET FLG-ACCTFILTER-NOT-OK TO TRUE
 
-      *    Not supplied
+      *    NOT SUPPLIED - OK IF CARD NUMBER SUPPLIED
            IF CC-ACCT-ID   EQUAL LOW-VALUES
            OR CC-ACCT-ID   EQUAL SPACES
            OR CC-ACCT-ID-N EQUAL ZEROS
-              SET INPUT-ERROR           TO TRUE
               SET FLG-ACCTFILTER-BLANK  TO TRUE
-              IF WS-RETURN-MSG-OFF
-                 SET WS-PROMPT-FOR-ACCT TO TRUE
-              END-IF
               MOVE ZEROES       TO CDEMO-ACCT-ID
               MOVE LOW-VALUES   TO CCUP-NEW-ACCTID
+      *       IF CARD NUMBER IS ALSO BLANK, THAT'S AN ERROR
+              IF CC-CARD-NUM EQUAL LOW-VALUES
+              OR CC-CARD-NUM EQUAL SPACES
+              OR CC-CARD-NUM-N EQUAL ZEROS
+                  SET INPUT-ERROR TO TRUE
+                  IF WS-RETURN-MSG-OFF
+                      SET NO-SEARCH-CRITERIA-RECEIVED TO TRUE
+                  END-IF
+              ELSE
+      *           CARD NUMBER PROVIDED, SO BLANK ACCOUNT IS OK
+                  SET FLG-ACCTFILTER-ISVALID TO TRUE
+              END-IF
               GO TO  1210-EDIT-ACCOUNT-EXIT
            END-IF
 
-      *    Not numeric
-      *    Not 11 characters
+      *    NOT NUMERIC
            IF CC-ACCT-ID  IS NOT NUMERIC
               SET INPUT-ERROR TO TRUE
               SET FLG-ACCTFILTER-NOT-OK TO TRUE
@@ -742,23 +757,29 @@
        1220-EDIT-CARD.
            SET FLG-CARDFILTER-NOT-OK TO TRUE
 
-      *    Not supplied
+      *    NOT SUPPLIED - OK IF ACCOUNT SUPPLIED
            IF CC-CARD-NUM   EQUAL LOW-VALUES
            OR CC-CARD-NUM   EQUAL SPACES
            OR CC-CARD-NUM-N EQUAL ZEROS
-              SET INPUT-ERROR           TO TRUE
               SET FLG-CARDFILTER-BLANK  TO TRUE
-              IF WS-RETURN-MSG-OFF
-                 SET WS-PROMPT-FOR-CARD TO TRUE
-              END-IF
-
               MOVE ZEROES        TO CDEMO-CARD-NUM
                                    CCUP-NEW-CARDID
+      *       IF ACCOUNT IS ALSO BLANK, THAT'S AN ERROR
+              IF CC-ACCT-ID EQUAL LOW-VALUES
+              OR CC-ACCT-ID EQUAL SPACES
+              OR CC-ACCT-ID-N EQUAL ZEROS
+                  SET INPUT-ERROR TO TRUE
+                  IF WS-RETURN-MSG-OFF
+                      SET NO-SEARCH-CRITERIA-RECEIVED TO TRUE
+                  END-IF
+              ELSE
+      *           ACCOUNT PROVIDED, SO BLANK CARD IS OK
+                  SET FLG-CARDFILTER-ISVALID TO TRUE
+              END-IF
               GO TO  1220-EDIT-CARD-EXIT
            END-IF
 
-      *    Not numeric
-      *    Not 16 characters
+      *    NOT NUMERIC
            IF CC-CARD-NUM  IS NOT NUMERIC
               SET INPUT-ERROR TO TRUE
               SET FLG-CARDFILTER-NOT-OK TO TRUE
@@ -929,7 +950,7 @@
       ******************************************************************
               WHEN CCARD-AID-PFK12
                  IF  FLG-ACCTFILTER-ISVALID
-                 AND FLG-CARDFILTER-ISVALID
+                 OR FLG-CARDFILTER-ISVALID
                      PERFORM 9000-READ-DATA
                         THRU 9000-READ-DATA-EXIT
                      IF FOUND-CARDS-FOR-ACCOUNT
@@ -1054,16 +1075,24 @@
            IF CDEMO-PGM-ENTER
               CONTINUE
            ELSE
-              IF CC-ACCT-ID-N = 0
-                 MOVE LOW-VALUES          TO ACCTSIDO OF CCRDUPAO
-              ELSE
-                 MOVE CC-ACCT-ID          TO ACCTSIDO OF CCRDUPAO
-              END-IF
+      *       After lookup, populate BOTH fields from returned data
+              IF CCUP-SHOW-DETAILS OR CCUP-CHANGES-MADE
 
-              IF CC-CARD-NUM-N = 0
-                MOVE LOW-VALUES           TO CARDSIDO OF CCRDUPAO
+                 MOVE CCUP-OLD-ACCTID     TO ACCTSIDO OF CCRDUPAO
+                 MOVE CCUP-OLD-CARDID     TO CARDSIDO OF CCRDUPAO
               ELSE
-                MOVE CC-CARD-NUM          TO CARDSIDO OF CCRDUPAO
+      *          Before lookup, show what user entered
+                 IF CC-ACCT-ID-N = 0
+                    MOVE LOW-VALUES       TO ACCTSIDO OF CCRDUPAO
+                 ELSE
+                    MOVE CC-ACCT-ID       TO ACCTSIDO OF CCRDUPAO
+                 END-IF
+
+                 IF CC-CARD-NUM-N = 0
+                   MOVE LOW-VALUES        TO CARDSIDO OF CCRDUPAO
+                 ELSE
+                   MOVE CC-CARD-NUM       TO CARDSIDO OF CCRDUPAO
+                 END-IF
               END-IF
 
               EVALUATE TRUE
@@ -1139,9 +1168,9 @@
                                          CRDSTCDA OF CCRDUPAI
                                          EXPMONA  OF CCRDUPAI
                                          EXPYEARA OF CCRDUPAI
-              WHEN  CCUP-SHOW-DETAILS
+               WHEN  CCUP-SHOW-DETAILS
               WHEN  CCUP-CHANGES-NOT-OK
-                   MOVE DFHBMPRF      TO ACCTSIDA OF CCRDUPAI
+                   MOVE DFHBMPRO      TO ACCTSIDA OF CCRDUPAI
                                          CARDSIDA OF CCRDUPAI
                    MOVE DFHBMFSE      TO CRDNAMEA OF CCRDUPAI
                                          CRDSTCDA OF CCRDUPAI
@@ -1213,6 +1242,7 @@
 
            IF  FLG-CARDFILTER-BLANK
            AND CDEMO-PGM-REENTER
+           AND CCUP-DETAILS-NOT-FETCHED
                MOVE '*'                TO CARDSIDO OF CCRDUPAO
                MOVE DFHRED             TO CARDSIDC OF CCRDUPAO
            END-IF
@@ -1271,8 +1301,8 @@
 
            IF PROMPT-FOR-CONFIRMATION
               MOVE DFHBMBRY            TO FKEYSCA  OF CCRDUPAI
-           END-IF
-           .
+              END-IF
+              .
        3300-SETUP-SCREEN-ATTRS-EXIT.
            EXIT
            .
@@ -1305,6 +1335,8 @@
               THRU 9100-CALL-RPC-LOOKUP-EXIT
 
            IF FOUND-CARDS-FOR-ACCOUNT
+              MOVE LK-OUT-ACCT-ID         TO CCUP-OLD-ACCTID
+              MOVE LK-OUT-CARD-NUM        TO CCUP-OLD-CARDID
               MOVE LK-OUT-CVV-CD          TO CCUP-OLD-CVV-CD
               MOVE LK-OUT-CARD-NAME       TO CCUP-OLD-CRDNAME
               MOVE LK-OUT-EXPIRY-YEAR     TO CCUP-OLD-EXPYEAR
@@ -1384,6 +1416,15 @@
            MOVE CCUP-NEW-EXPDAY     TO LK-IN-EXPIRY-DAY
            MOVE CCUP-NEW-CRDSTCD    TO LK-IN-CARD-STATUS
 
+
+
+           MOVE CCUP-OLD-CVV-CD     TO LK-OLD-CVV-CD
+           MOVE CCUP-OLD-CRDNAME    TO LK-OLD-CARD-NAME
+           MOVE CCUP-OLD-EXPYEAR    TO LK-OLD-EXPIRY-YEAR
+           MOVE CCUP-OLD-EXPMON     TO LK-OLD-EXPIRY-MONTH
+           MOVE CCUP-OLD-EXPDAY     TO LK-OLD-EXPIRY-DAY
+           MOVE CCUP-OLD-CRDSTCD    TO LK-OLD-CARD-STATUS
+
            EXEC CICS LINK
                 PROGRAM(LIT-RPC-PROGRAM)
                 COMMAREA(WS-RPC-COMMAREA)
@@ -1392,9 +1433,11 @@
                 RESP2(WS-REAS-CD)
            END-EXEC
 
+
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)
                    EVALUATE TRUE
+
                        WHEN RC-SUCCESS
                            CONTINUE
                        WHEN RC-NOT-FOUND

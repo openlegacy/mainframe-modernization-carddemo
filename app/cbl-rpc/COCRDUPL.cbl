@@ -37,6 +37,7 @@
        01 WS-VARIABLES.
          05 WS-PGMNAME                 PIC X(08) VALUE 'COCRDUPL'.
          05 WS-CARDDAT-FILE            PIC X(08) VALUE 'CARDDAT '.
+         05 WS-CARDDAT-FILE-AIX        PIC X(08) VALUE 'CARDAIX '.
          05 WS-ERR-FLG                 PIC X(01) VALUE 'N'.
            88 ERR-FLG-ON                         VALUE 'Y'.
            88 ERR-FLG-OFF                        VALUE 'N'.
@@ -123,6 +124,13 @@
                10  LK-IN-EXPIRY-MONTH     PIC X(02).
                10  LK-IN-EXPIRY-DAY       PIC X(02).
                10  LK-IN-CARD-STATUS      PIC X(01).
+           05  LK-OLD-CARD.
+               10  LK-OLD-CVV-CD          PIC X(03).
+               10  LK-OLD-CARD-NAME       PIC X(50).
+               10  LK-OLD-EXPIRY-YEAR     PIC X(04).
+               10  LK-OLD-EXPIRY-MONTH    PIC X(02).
+               10  LK-OLD-EXPIRY-DAY      PIC X(02).
+               10  LK-OLD-CARD-STATUS     PIC X(01).
            05  LK-OUTPUT-STATUS.
                10  LK-OUT-RETURN-CODE     PIC 9(02).
                    88  RC-SUCCESS         VALUE 00.
@@ -167,41 +175,62 @@
                WHEN OTHER
                    SET RC-VALIDATION-ERROR TO TRUE
                    MOVE 'Invalid operation code' TO LK-OUT-MESSAGE
-           END-EVALUATE
+           END-EVALUATE.
 
-           GOBACK.
+
+           EXEC CICS RETURN
+           END-EXEC.
+
 
       *----------------------------------------------------------------*
       *                      PROCESS-LOOKUP
       *----------------------------------------------------------------*
        PROCESS-LOOKUP.
 
-           IF LK-IN-CARD-NUM = SPACES OR LOW-VALUES
+      *    Validate input - must have EITHER account-id OR card number
+           IF (LK-IN-CARD-NUM = SPACES OR LOW-VALUES)
+           AND (LK-IN-ACCT-ID = SPACES OR LOW-VALUES)
                SET RC-VALIDATION-ERROR TO TRUE
-               MOVE 'Card number cannot be empty for lookup'
+               MOVE 'Account ID or Card number must be provided'
                     TO LK-OUT-MESSAGE
-           ELSE
-               MOVE LK-IN-CARD-NUM TO WS-CARD-RID-CARDNUM
-               PERFORM READ-CARD-FILE-LOOKUP
+               GO TO PROCESS-LOOKUP-EXIT
+           END-IF
 
-               IF NOT ERR-FLG-ON
-      * Return card data in the output fields for screen display
-                   MOVE CARD-NUM           TO LK-OUT-CARD-NUM
-                   MOVE CARD-ACCT-ID       TO LK-OUT-ACCT-ID
-                   MOVE CARD-CVV-CD        TO LK-OUT-CVV-CD
-                   MOVE CARD-EMBOSSED-NAME TO LK-OUT-CARD-NAME
-                   MOVE CARD-EXPIRAION-DATE(1:4) TO LK-OUT-EXPIRY-YEAR
-                   MOVE CARD-EXPIRAION-DATE(6:2) TO LK-OUT-EXPIRY-MONTH
-                   MOVE CARD-EXPIRAION-DATE(9:2) TO LK-OUT-EXPIRY-DAY
-                   MOVE CARD-ACTIVE-STATUS TO LK-OUT-CARD-STATUS
-                   MOVE 'Card data retrieved successfully'
-                        TO LK-OUT-MESSAGE
+      *    Determine which lookup method to use
+           EVALUATE TRUE
+               WHEN LK-IN-CARD-NUM NOT = SPACES
+               AND  LK-IN-CARD-NUM NOT = LOW-VALUES
+      *            Card number provided - use primary key
+                   MOVE LK-IN-CARD-NUM TO WS-CARD-RID-CARDNUM
+                   PERFORM READ-CARD-BY-CARDNUM
 
-                   INSPECT LK-OUT-CARD-NAME
-                   CONVERTING LIT-LOWER
-                           TO LIT-UPPER
-               END-IF
+               WHEN LK-IN-ACCT-ID NOT = SPACES
+               AND  LK-IN-ACCT-ID NOT = LOW-VALUES
+      *            Account ID provided - use alternate index
+                   MOVE LK-IN-ACCT-ID TO WS-CARD-RID-ACCT-ID-X
+                   PERFORM READ-CARD-BY-ACCTID
+           END-EVALUATE
+
+           IF NOT ERR-FLG-ON
+      * Return card data in the output fields
+               MOVE CARD-NUM           TO LK-OUT-CARD-NUM
+               MOVE CARD-ACCT-ID       TO LK-OUT-ACCT-ID
+               MOVE CARD-CVV-CD        TO LK-OUT-CVV-CD
+               MOVE CARD-EMBOSSED-NAME TO LK-OUT-CARD-NAME
+               MOVE CARD-EXPIRAION-DATE(1:4) TO LK-OUT-EXPIRY-YEAR
+               MOVE CARD-EXPIRAION-DATE(6:2) TO LK-OUT-EXPIRY-MONTH
+               MOVE CARD-EXPIRAION-DATE(9:2) TO LK-OUT-EXPIRY-DAY
+               MOVE CARD-ACTIVE-STATUS TO LK-OUT-CARD-STATUS
+               MOVE 'Card data retrieved successfully'
+                    TO LK-OUT-MESSAGE
+
+               INSPECT LK-OUT-CARD-NAME
+               CONVERTING LIT-LOWER
+                       TO LIT-UPPER
            END-IF.
+       
+       PROCESS-LOOKUP-EXIT.
+           EXIT.
 
       *----------------------------------------------------------------*
       *                      PROCESS-UPDATE
@@ -239,7 +268,8 @@
                IF NOT ERR-FLG-ON
                    PERFORM CHECK-FOR-CHANGES
                    IF CARD-MODIFIED-YES
-                       PERFORM UPDATE-CARD-FILE
+                       PERFORM UPDATE-CARD-FILE  
+                          THRU UPDATE-CARD-FILE-EXIT
                    ELSE
                        SET RC-NO-CHANGES TO TRUE
                        MOVE 'No changes detected' TO LK-OUT-MESSAGE
@@ -248,9 +278,9 @@
            END-IF.
 
       *----------------------------------------------------------------*
-      *                      READ-CARD-FILE-LOOKUP
+      *                      READ-CARD-BY-CARDNUM
       *----------------------------------------------------------------*
-       READ-CARD-FILE-LOOKUP.
+       READ-CARD-BY-CARDNUM.
            EXEC CICS READ
                 FILE      (WS-CARDDAT-FILE)
                 RIDFLD    (WS-CARD-RID-CARDNUM)
@@ -272,6 +302,35 @@
                    SET ERR-FLG-ON TO TRUE
                    SET RC-DATABASE-ERROR TO TRUE
                    MOVE 'Unable to lookup card' TO LK-OUT-MESSAGE
+           END-EVALUATE.
+
+      *----------------------------------------------------------------*
+      *                      READ-CARD-BY-ACCTID
+      *----------------------------------------------------------------*
+       READ-CARD-BY-ACCTID.
+           EXEC CICS READ
+                FILE      (WS-CARDDAT-FILE-AIX)
+                RIDFLD    (WS-CARD-RID-ACCT-ID-X)
+                KEYLENGTH (LENGTH OF WS-CARD-RID-ACCT-ID-X)
+                INTO      (CARD-RECORD)
+                LENGTH    (LENGTH OF CARD-RECORD)
+                RESP      (WS-RESP-CD)
+                RESP2     (WS-REAS-CD)
+           END-EXEC
+
+           EVALUATE WS-RESP-CD
+               WHEN DFHRESP(NORMAL)
+                   CONTINUE
+               WHEN DFHRESP(NOTFND)
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-NOT-FOUND TO TRUE
+                   MOVE 'Card not found for this account'
+                        TO LK-OUT-MESSAGE
+               WHEN OTHER
+                   SET ERR-FLG-ON TO TRUE
+                   SET RC-DATABASE-ERROR TO TRUE
+                   MOVE 'Unable to lookup card by account'
+                        TO LK-OUT-MESSAGE
            END-EVALUATE.
 
       *----------------------------------------------------------------*
@@ -383,12 +442,14 @@
            CONVERTING LIT-LOWER
                    TO LIT-UPPER
 
-           IF  CARD-CVV-CD              NOT = LK-IN-CVV-CD
-           OR  CARD-EMBOSSED-NAME       NOT = LK-IN-CARD-NAME
-           OR  CARD-EXPIRAION-DATE(1:4) NOT = LK-IN-EXPIRY-YEAR
-           OR  CARD-EXPIRAION-DATE(6:2) NOT = LK-IN-EXPIRY-MONTH
-           OR  CARD-EXPIRAION-DATE(9:2) NOT = LK-IN-EXPIRY-DAY
-           OR  CARD-ACTIVE-STATUS       NOT = LK-IN-CARD-STATUS
+           IF  CARD-CVV-CD              EQUAL  TO LK-OLD-CVV-CD
+           AND CARD-EMBOSSED-NAME       EQUAL  TO LK-OLD-CARD-NAME
+           AND CARD-EXPIRAION-DATE(1:4) EQUAL  TO LK-OLD-EXPIRY-YEAR
+           AND CARD-EXPIRAION-DATE(6:2) EQUAL  TO LK-OLD-EXPIRY-MONTH
+           AND CARD-EXPIRAION-DATE(9:2) EQUAL  TO LK-OLD-EXPIRY-DAY
+           AND CARD-ACTIVE-STATUS       EQUAL  TO LK-OLD-CARD-STATUS
+               CONTINUE
+           ELSE
                SET RC-DATA-CHANGED TO TRUE
                MOVE 'Record changed by someone else. Please review'
                     TO LK-OUT-MESSAGE
@@ -402,7 +463,8 @@
                MOVE CARD-EXPIRAION-DATE(9:2) TO LK-OUT-EXPIRY-DAY
                MOVE CARD-ACTIVE-STATUS TO LK-OUT-CARD-STATUS
            END-IF.
-
+        
+           
       *
       * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT
       *
