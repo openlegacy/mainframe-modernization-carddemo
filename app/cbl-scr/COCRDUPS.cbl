@@ -177,8 +177,6 @@
                'Did not find cards for this search condition'.
            88  COULD-NOT-LOCK-FOR-UPDATE           VALUE
                'Could not lock record for update'.
-           88  DATA-WAS-CHANGED-BEFORE-UPDATE      VALUE
-               'Record changed by some one else. Please review'.
            88  LOCKED-BUT-UPDATE-FAILED            VALUE
                'Update of record failed'.
            88  XREF-READ-ERROR                     VALUE
@@ -259,17 +257,17 @@
                 88 CCUP-CHANGES-FAILED             VALUES 'L', 'F'.
                 88 CCUP-CHANGES-OKAYED-LOCK-ERROR  VALUE 'L'.
                 88 CCUP-CHANGES-OKAYED-BUT-FAILED  VALUE 'F'.
-          05 CCUP-OLD-DETAILS.
-             10 CCUP-OLD-ACCTID                    PIC X(11).
-             10 CCUP-OLD-CARDID                    PIC X(16).
-             10 CCUP-OLD-CVV-CD                    PIC X(3).
-             10 CCUP-OLD-CARDDATA.
-                20 CCUP-OLD-CRDNAME                PIC X(50).
-                20 CCUP-OLD-EXPIRAION-DATE.
-                   25 CCUP-OLD-EXPYEAR             PIC X(4).
-                   25 CCUP-OLD-EXPMON              PIC X(2).
-                   25 CCUP-OLD-EXPDAY              PIC X(2).
-                20 CCUP-OLD-CRDSTCD                PIC X(1).
+          05 CCUP-FETCHED-DETAILS.
+             10 CCUP-FETCHED-ACCTID                PIC X(11).
+             10 CCUP-FETCHED-CARDID                PIC X(16).
+             10 CCUP-FETCHED-CVV-CD                PIC X(3).
+             10 CCUP-FETCHED-CARDDATA.
+                20 CCUP-FETCHED-CRDNAME            PIC X(50).
+                20 CCUP-FETCHED-EXPIRAION-DATE.
+                   25 CCUP-FETCHED-EXPYEAR         PIC X(4).
+                   25 CCUP-FETCHED-EXPMON          PIC X(2).
+                   25 CCUP-FETCHED-EXPDAY          PIC X(2).
+                20 CCUP-FETCHED-CRDSTCD            PIC X(1).
 
           05 CCUP-NEW-DETAILS.
              10 CCUP-NEW-ACCTID                    PIC X(11).
@@ -299,13 +297,6 @@
                10 LK-IN-EXPIRY-MONTH     PIC X(02).
                10 LK-IN-EXPIRY-DAY       PIC X(02).
                10 LK-IN-CARD-STATUS      PIC X(01).
-           05  LK-OLD-CARD.
-               10  LK-OLD-CVV-CD          PIC X(03).
-               10  LK-OLD-CARD-NAME       PIC X(50).
-               10  LK-OLD-EXPIRY-YEAR     PIC X(04).
-               10  LK-OLD-EXPIRY-MONTH    PIC X(02).
-               10  LK-OLD-EXPIRY-DAY      PIC X(02).
-               10  LK-OLD-CARD-STATUS     PIC X(01).
            05 LK-OUTPUT-STATUS.
                10 LK-OUT-RETURN-CODE     PIC 9(02).
                    88 RC-SUCCESS         VALUE 00.
@@ -313,7 +304,6 @@
                    88 RC-NO-CHANGES      VALUE 02.
                    88 RC-VALIDATION-ERROR VALUE 10.
                    88 RC-LOCK-ERROR      VALUE 11.
-                   88 RC-DATA-CHANGED    VALUE 12.
                    88 RC-DATABASE-ERROR  VALUE 99.
                10 LK-OUT-MESSAGE         PIC X(80).
            05 LK-OUTPUT-CARD.
@@ -658,16 +648,16 @@
            SET FOUND-CARDS-FOR-ACCOUNT TO TRUE
            SET FLG-ACCTFILTER-ISVALID  TO TRUE
            SET FLG-CARDFILTER-ISVALID  TO TRUE
-           MOVE CCUP-OLD-ACCTID     TO CDEMO-ACCT-ID
-           MOVE CCUP-OLD-CARDID     TO CDEMO-CARD-NUM
+           MOVE CCUP-FETCHED-ACCTID    TO CDEMO-ACCT-ID
+           MOVE CCUP-FETCHED-CARDID    TO CDEMO-CARD-NUM
 
       *    ENSURE BOTH SEARCH FIELDS SHOW VALID VALUES
-           MOVE CCUP-OLD-ACCTID     TO CC-ACCT-ID
-           MOVE CCUP-OLD-CARDID     TO CC-CARD-NUM
+           MOVE CCUP-FETCHED-ACCTID    TO CC-ACCT-ID
+           MOVE CCUP-FETCHED-CARDID    TO CC-CARD-NUM
 
-      *    NEW DATA IS SAME AS OLD DATA
+      *    NEW DATA IS SAME AS FETCHED DATA
            IF  (FUNCTION UPPER-CASE(CCUP-NEW-CARDDATA) EQUAL
-                FUNCTION UPPER-CASE(CCUP-OLD-CARDDATA))
+                FUNCTION UPPER-CASE(CCUP-FETCHED-CARDDATA))
                SET NO-CHANGES-DETECTED TO TRUE
            END-IF
 
@@ -987,8 +977,6 @@
                          SET CCUP-CHANGES-OKAYED-LOCK-ERROR TO TRUE
                     WHEN LOCKED-BUT-UPDATE-FAILED
                        SET CCUP-CHANGES-OKAYED-BUT-FAILED TO TRUE
-                    WHEN DATA-WAS-CHANGED-BEFORE-UPDATE
-                        SET CCUP-SHOW-DETAILS            TO TRUE
                     WHEN OTHER
                        SET CCUP-CHANGES-OKAYED-AND-DONE   TO TRUE
                  END-EVALUATE
@@ -1078,8 +1066,8 @@
       *       After lookup, populate BOTH fields from returned data
               IF CCUP-SHOW-DETAILS OR CCUP-CHANGES-MADE
 
-                 MOVE CCUP-OLD-ACCTID     TO ACCTSIDO OF CCRDUPAO
-                 MOVE CCUP-OLD-CARDID     TO CARDSIDO OF CCRDUPAO
+                 MOVE CCUP-FETCHED-ACCTID TO ACCTSIDO OF CCRDUPAO
+                 MOVE CCUP-FETCHED-CARDID TO CARDSIDO OF CCRDUPAO
               ELSE
       *          Before lookup, show what user entered
                  IF CC-ACCT-ID-N = 0
@@ -1103,23 +1091,38 @@
                                                   EXPMONO  OF CCRDUPAO
                                                   EXPYEARO OF CCRDUPAO
                   WHEN CCUP-SHOW-DETAILS
-                      MOVE CCUP-OLD-CRDNAME    TO CRDNAMEO OF CCRDUPAO
-                      MOVE CCUP-OLD-CRDSTCD    TO CRDSTCDO OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPDAY     TO EXPDAYO  OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPMON     TO EXPMONO  OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPYEAR    TO EXPYEARO OF CCRDUPAO
+                      MOVE CCUP-FETCHED-CRDNAME    TO CRDNAMEO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-CRDSTCD    TO CRDSTCDO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPDAY     TO EXPDAYO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPMON     TO EXPMONO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPYEAR    TO EXPYEARO
+                                                      OF CCRDUPAO
                   WHEN CCUP-CHANGES-MADE
-                      MOVE CCUP-NEW-CRDNAME    TO CRDNAMEO OF CCRDUPAO
-                      MOVE CCUP-NEW-CRDSTCD    TO CRDSTCDO OF CCRDUPAO
-                      MOVE CCUP-NEW-EXPMON     TO EXPMONO  OF CCRDUPAO
-                      MOVE CCUP-NEW-EXPYEAR    TO EXPYEARO OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPDAY     TO EXPDAYO  OF CCRDUPAO
+                      MOVE CCUP-NEW-CRDNAME        TO CRDNAMEO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-NEW-CRDSTCD        TO CRDSTCDO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-NEW-EXPMON         TO EXPMONO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-NEW-EXPYEAR        TO EXPYEARO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPDAY     TO EXPDAYO
+                                                      OF CCRDUPAO
                   WHEN OTHER
-                      MOVE CCUP-OLD-CRDNAME    TO CRDNAMEO OF CCRDUPAO
-                      MOVE CCUP-OLD-CRDSTCD    TO CRDSTCDO OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPDAY     TO EXPDAYO  OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPMON     TO EXPMONO  OF CCRDUPAO
-                      MOVE CCUP-OLD-EXPYEAR    TO EXPYEARO OF CCRDUPAO
+                      MOVE CCUP-FETCHED-CRDNAME    TO CRDNAMEO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-CRDSTCD    TO CRDSTCDO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPDAY     TO EXPDAYO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPMON     TO EXPMONO
+                                                      OF CCRDUPAO
+                      MOVE CCUP-FETCHED-EXPYEAR    TO EXPYEARO
+                                                      OF CCRDUPAO
               END-EVALUATE
 
             END-IF
@@ -1327,22 +1330,22 @@
 
        9000-READ-DATA.
 
-           INITIALIZE CCUP-OLD-DETAILS
-           MOVE CC-ACCT-ID              TO CCUP-OLD-ACCTID
-           MOVE CC-CARD-NUM             TO CCUP-OLD-CARDID
+           INITIALIZE CCUP-FETCHED-DETAILS
+           MOVE CC-ACCT-ID              TO CCUP-FETCHED-ACCTID
+           MOVE CC-CARD-NUM             TO CCUP-FETCHED-CARDID
 
            PERFORM 9100-CALL-RPC-LOOKUP
               THRU 9100-CALL-RPC-LOOKUP-EXIT
 
            IF FOUND-CARDS-FOR-ACCOUNT
-              MOVE LK-OUT-ACCT-ID         TO CCUP-OLD-ACCTID
-              MOVE LK-OUT-CARD-NUM        TO CCUP-OLD-CARDID
-              MOVE LK-OUT-CVV-CD          TO CCUP-OLD-CVV-CD
-              MOVE LK-OUT-CARD-NAME       TO CCUP-OLD-CRDNAME
-              MOVE LK-OUT-EXPIRY-YEAR     TO CCUP-OLD-EXPYEAR
-              MOVE LK-OUT-EXPIRY-MONTH    TO CCUP-OLD-EXPMON
-              MOVE LK-OUT-EXPIRY-DAY      TO CCUP-OLD-EXPDAY
-              MOVE LK-OUT-CARD-STATUS     TO CCUP-OLD-CRDSTCD
+              MOVE LK-OUT-ACCT-ID         TO CCUP-FETCHED-ACCTID
+              MOVE LK-OUT-CARD-NUM        TO CCUP-FETCHED-CARDID
+              MOVE LK-OUT-CVV-CD          TO CCUP-FETCHED-CVV-CD
+              MOVE LK-OUT-CARD-NAME       TO CCUP-FETCHED-CRDNAME
+              MOVE LK-OUT-EXPIRY-YEAR     TO CCUP-FETCHED-EXPYEAR
+              MOVE LK-OUT-EXPIRY-MONTH    TO CCUP-FETCHED-EXPMON
+              MOVE LK-OUT-EXPIRY-DAY      TO CCUP-FETCHED-EXPDAY
+              MOVE LK-OUT-CARD-STATUS     TO CCUP-FETCHED-CRDSTCD
            END-IF
            .
 
@@ -1407,23 +1410,14 @@
 
            INITIALIZE WS-RPC-COMMAREA
            SET LK-OP-UPDATE TO TRUE
-           MOVE CC-CARD-NUM         TO LK-IN-CARD-NUM
-           MOVE CC-ACCT-ID          TO LK-IN-ACCT-ID
-           MOVE CCUP-OLD-CVV-CD     TO LK-IN-CVV-CD
-           MOVE CCUP-NEW-CRDNAME    TO LK-IN-CARD-NAME
-           MOVE CCUP-NEW-EXPYEAR    TO LK-IN-EXPIRY-YEAR
-           MOVE CCUP-NEW-EXPMON     TO LK-IN-EXPIRY-MONTH
-           MOVE CCUP-NEW-EXPDAY     TO LK-IN-EXPIRY-DAY
-           MOVE CCUP-NEW-CRDSTCD    TO LK-IN-CARD-STATUS
-
-
-
-           MOVE CCUP-OLD-CVV-CD     TO LK-OLD-CVV-CD
-           MOVE CCUP-OLD-CRDNAME    TO LK-OLD-CARD-NAME
-           MOVE CCUP-OLD-EXPYEAR    TO LK-OLD-EXPIRY-YEAR
-           MOVE CCUP-OLD-EXPMON     TO LK-OLD-EXPIRY-MONTH
-           MOVE CCUP-OLD-EXPDAY     TO LK-OLD-EXPIRY-DAY
-           MOVE CCUP-OLD-CRDSTCD    TO LK-OLD-CARD-STATUS
+           MOVE CC-CARD-NUM            TO LK-IN-CARD-NUM
+           MOVE CC-ACCT-ID             TO LK-IN-ACCT-ID
+           MOVE CCUP-FETCHED-CVV-CD    TO LK-IN-CVV-CD
+           MOVE CCUP-NEW-CRDNAME       TO LK-IN-CARD-NAME
+           MOVE CCUP-NEW-EXPYEAR       TO LK-IN-EXPIRY-YEAR
+           MOVE CCUP-NEW-EXPMON        TO LK-IN-EXPIRY-MONTH
+           MOVE CCUP-NEW-EXPDAY        TO LK-IN-EXPIRY-DAY
+           MOVE CCUP-NEW-CRDSTCD       TO LK-IN-CARD-STATUS
 
            EXEC CICS LINK
                 PROGRAM(LIT-RPC-PROGRAM)
@@ -1437,21 +1431,12 @@
            EVALUATE WS-RESP-CD
                WHEN DFHRESP(NORMAL)
                    EVALUATE TRUE
-
                        WHEN RC-SUCCESS
                            CONTINUE
                        WHEN RC-NOT-FOUND
                            SET COULD-NOT-LOCK-FOR-UPDATE TO TRUE
                        WHEN RC-LOCK-ERROR
                            SET COULD-NOT-LOCK-FOR-UPDATE TO TRUE
-                       WHEN RC-DATA-CHANGED
-                         SET DATA-WAS-CHANGED-BEFORE-UPDATE TO TRUE
-                         MOVE LK-OUT-CVV-CD          TO CCUP-OLD-CVV-CD
-                         MOVE LK-OUT-CARD-NAME       TO CCUP-OLD-CRDNAME
-                         MOVE LK-OUT-EXPIRY-YEAR     TO CCUP-OLD-EXPYEAR
-                         MOVE LK-OUT-EXPIRY-MONTH    TO CCUP-OLD-EXPMON
-                         MOVE LK-OUT-EXPIRY-DAY      TO CCUP-OLD-EXPDAY
-                         MOVE LK-OUT-CARD-STATUS     TO CCUP-OLD-CRDSTCD
                        WHEN RC-DATABASE-ERROR
                            SET LOCKED-BUT-UPDATE-FAILED TO TRUE
                        WHEN OTHER

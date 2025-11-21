@@ -124,13 +124,6 @@
                10  LK-IN-EXPIRY-MONTH     PIC X(02).
                10  LK-IN-EXPIRY-DAY       PIC X(02).
                10  LK-IN-CARD-STATUS      PIC X(01).
-           05  LK-OLD-CARD.
-               10  LK-OLD-CVV-CD          PIC X(03).
-               10  LK-OLD-CARD-NAME       PIC X(50).
-               10  LK-OLD-EXPIRY-YEAR     PIC X(04).
-               10  LK-OLD-EXPIRY-MONTH    PIC X(02).
-               10  LK-OLD-EXPIRY-DAY      PIC X(02).
-               10  LK-OLD-CARD-STATUS     PIC X(01).
            05  LK-OUTPUT-STATUS.
                10  LK-OUT-RETURN-CODE     PIC 9(02).
                    88  RC-SUCCESS         VALUE 00.
@@ -138,7 +131,6 @@
                    88  RC-NO-CHANGES      VALUE 02.
                    88  RC-VALIDATION-ERROR VALUE 10.
                    88  RC-LOCK-ERROR      VALUE 11.
-                   88  RC-DATA-CHANGED    VALUE 12.
                    88  RC-DATABASE-ERROR  VALUE 99.
                10  LK-OUT-MESSAGE         PIC X(80).
            05  LK-OUTPUT-CARD.
@@ -228,7 +220,7 @@
                CONVERTING LIT-LOWER
                        TO LIT-UPPER
            END-IF.
-       
+
        PROCESS-LOOKUP-EXIT.
            EXIT.
 
@@ -268,7 +260,7 @@
                IF NOT ERR-FLG-ON
                    PERFORM CHECK-FOR-CHANGES
                    IF CARD-MODIFIED-YES
-                       PERFORM UPDATE-CARD-FILE  
+                       PERFORM UPDATE-CARD-FILE
                           THRU UPDATE-CARD-FILE-EXIT
                    ELSE
                        SET RC-NO-CHANGES TO TRUE
@@ -384,12 +376,6 @@
       *----------------------------------------------------------------*
        UPDATE-CARD-FILE.
 
-      * Check if someone changed the record while we were out
-           PERFORM CHECK-CHANGE-IN-REC
-           IF RC-DATA-CHANGED
-               GO TO UPDATE-CARD-FILE-EXIT
-           END-IF
-
       * Prepare the update
            INITIALIZE CARD-UPDATE-RECORD
            MOVE LK-IN-CARD-NUM          TO CARD-UPDATE-NUM
@@ -434,37 +420,7 @@
        UPDATE-CARD-FILE-EXIT.
            EXIT.
 
-      *----------------------------------------------------------------*
-      *                      CHECK-CHANGE-IN-REC
-      *----------------------------------------------------------------*
-       CHECK-CHANGE-IN-REC.
-           INSPECT CARD-EMBOSSED-NAME
-           CONVERTING LIT-LOWER
-                   TO LIT-UPPER
 
-           IF  CARD-CVV-CD              EQUAL  TO LK-OLD-CVV-CD
-           AND CARD-EMBOSSED-NAME       EQUAL  TO LK-OLD-CARD-NAME
-           AND CARD-EXPIRAION-DATE(1:4) EQUAL  TO LK-OLD-EXPIRY-YEAR
-           AND CARD-EXPIRAION-DATE(6:2) EQUAL  TO LK-OLD-EXPIRY-MONTH
-           AND CARD-EXPIRAION-DATE(9:2) EQUAL  TO LK-OLD-EXPIRY-DAY
-           AND CARD-ACTIVE-STATUS       EQUAL  TO LK-OLD-CARD-STATUS
-               CONTINUE
-           ELSE
-               SET RC-DATA-CHANGED TO TRUE
-               MOVE 'Record changed by someone else. Please review'
-                    TO LK-OUT-MESSAGE
-      * Return current values for display
-               MOVE CARD-NUM           TO LK-OUT-CARD-NUM
-               MOVE CARD-ACCT-ID       TO LK-OUT-ACCT-ID
-               MOVE CARD-CVV-CD        TO LK-OUT-CVV-CD
-               MOVE CARD-EMBOSSED-NAME TO LK-OUT-CARD-NAME
-               MOVE CARD-EXPIRAION-DATE(1:4) TO LK-OUT-EXPIRY-YEAR
-               MOVE CARD-EXPIRAION-DATE(6:2) TO LK-OUT-EXPIRY-MONTH
-               MOVE CARD-EXPIRAION-DATE(9:2) TO LK-OUT-EXPIRY-DAY
-               MOVE CARD-ACTIVE-STATUS TO LK-OUT-CARD-STATUS
-           END-IF.
-        
-           
       *
       * Ver: CardDemo_v1.0-15-g27d6c6f-68 Date: 2022-07-19 23:12:33 CDT
       *
