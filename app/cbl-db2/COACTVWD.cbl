@@ -309,15 +309,15 @@
 
        PROCEDURE DIVISION.
        0000-MAIN.
-           DISPLAY 'CRISS'
+           
            EXEC CICS HANDLE ABEND
                      LABEL(ABEND-ROUTINE)
            END-EXEC
-           DISPLAY 'CRISS0'
+           
            INITIALIZE CC-WORK-AREA
                       WS-MISC-STORAGE
                       WS-COMMAREA
-           DISPLAY 'CRISS1'
+           
       *****************************************************************
       * Store our context
       *****************************************************************
