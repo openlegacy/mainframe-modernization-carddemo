@@ -196,6 +196,21 @@ CREATE TABLE <your-schema>.TRANSACT (
     CONSTRAINT PK_TRANSACT PRIMARY KEY (TRAN_ID)
 ) IN DATABASE <your-DB-name>;
 
+
+-- =================================================================
+-- 6. USERSEC - Users Table
+-- =================================================================
+CREATE TABLE ALAINL.USERSEC (
+    USR_ID CHAR(8) NOT NULL,
+    USR_FNAME CHAR(20) NOT NULL,
+    USR_LNAME CHAR(20) NOT NULL,
+    USR_PWD CHAR(10) NOT NULL,
+    USR_TYPE CHAR(1) NOT NULL,
+    
+    
+    CONSTRAINT PK_USERSEC PRIMARY KEY (USR_ID)
+) IN DATABASE <your-DB-name>;
+
 -- =================================================================
 -- Create Indexes for Performance
 -- =================================================================
@@ -252,6 +267,7 @@ COMMENT ON TABLE <your-schema>.ACCTDAT IS 'Account Master Data - RECLN 300';
 COMMENT ON TABLE <your-schema>.CUSTDAT IS 'Customer Master Data - RECLN 500';
 COMMENT ON TABLE <your-schema>.CXACAIX IS 'Card/Account/Customer Cross Reference';
 COMMENT ON TABLE <your-schema>.TRANSACT IS 'Transaction Master Data';
+COMMENT ON TABLE ALAINL.USERSEC IS 'Application User Security Table';
 
 -- =================================================================
 -- Grant Privileges
@@ -261,6 +277,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.ACCTDAT TO PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.CUSTDAT TO PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.CXACAIX TO PUBLIC;
 GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.TRANSACT TO PUBLIC;
+GRANT SELECT, INSERT, UPDATE, DELETE ON <your-schema>.USERSEC TO PUBLIC;
 
 -- =================================================================
 -- Sample Test Data - Individual INSERT statements
@@ -361,12 +378,20 @@ INSERT INTO <your-schema>.TRANSACT VALUES
 INSERT INTO <your-schema>.TRANSACT VALUES 
     ('0000000000000010', 'VO', 7011, 'ONLINE', 'HOTEL VOID', 0.00, 987123456, 'MARRIOTT HOTEL', 'PORTLAND', '97201', '4444000000000002', '2024-01-24-10.45.15.678901', '2024-01-24-10.45.17.012345');
 
+INSERT INTO ALAINL.USERSEC VALUES
+    ('ADMIN001','JOHN','SMITH','PASSWORD','A');
+
+INSERT INTO ALAINL.USERSEC VALUES
+    ('USER001','JANE','DOE','PASSWORD','U');
+
 GRANT ALL ON <your-schema>.CARDDAT TO PUBLIC;
 GRANT ALL ON <your-schema>.ACCTDAT TO PUBLIC;
 GRANT ALL ON <your-schema>.CUSTDAT TO PUBLIC;
 GRANT ALL ON <your-schema>.CXACAIX TO PUBLIC;
 GRANT ALL ON <your-schema>.TRANSACT TO PUBLIC;
+GRANT ALL ON <your-schema>.USERSEC TO PUBLIC;
 GRANT EXECUTE ON PLAN <your-schema> TO <your-schema>;
 
 ```
+
 
