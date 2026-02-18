@@ -912,7 +912,6 @@
            EXEC CICS HANDLE ABEND
                      LABEL(ABEND-ROUTINE)
            END-EXEC
-
            INITIALIZE CC-WORK-AREA
                       WS-MISC-STORAGE
                       WS-COMMAREA
@@ -930,7 +929,6 @@
            IF EIBCALEN IS EQUAL TO 0
                OR (CDEMO-FROM-PROGRAM = LIT-MENUPGM
                AND NOT CDEMO-PGM-REENTER)
-
               INITIALIZE CARDDEMO-COMMAREA
                          WS-THIS-PROGCOMMAREA
               SET CDEMO-PGM-ENTER TO TRUE
@@ -965,7 +963,6 @@
            IF PFK-INVALID
               SET CCARD-AID-ENTER TO TRUE
            END-IF
-
       *****************************************************************
       * Decide what to do based on inputs received
       *****************************************************************
@@ -984,7 +981,6 @@
                    ELSE
                       MOVE CDEMO-FROM-TRANID  TO CDEMO-TO-TRANID
                    END-IF
-
                    IF CDEMO-FROM-PROGRAM   EQUAL LOW-VALUES
                    OR CDEMO-FROM-PROGRAM   EQUAL SPACES
                       MOVE LIT-MENUPGM     TO CDEMO-TO-PROGRAM
@@ -999,7 +995,6 @@
                    SET  CDEMO-PGM-ENTER    TO TRUE
                    MOVE LIT-THISMAPSET     TO CDEMO-LAST-MAPSET
                    MOVE LIT-THISMAP        TO CDEMO-LAST-MAP
-
                    EXEC CICS
                         SYNCPOINT
                    END-EXEC
@@ -1544,7 +1539,6 @@
            PERFORM 1250-EDIT-SIGNED-9V2
               THRU 1250-EDIT-SIGNED-9V2-EXIT
            MOVE WS-FLG-SIGNED-NUMBER-EDIT TO WS-EDIT-CASH-CREDIT-LIMIT
-
            MOVE 'Reissue Date'           TO WS-EDIT-VARIABLE-NAME
            MOVE ACUP-NEW-REISSUE-DATE    TO WS-EDIT-DATE-CCYYMMDD
            PERFORM EDIT-DATE-CCYYMMDD
@@ -1569,7 +1563,6 @@
            PERFORM 1250-EDIT-SIGNED-9V2
               THRU 1250-EDIT-SIGNED-9V2-EXIT
            MOVE WS-FLG-SIGNED-NUMBER-EDIT   TO WS-EDIT-CURR-CYC-DEBIT
-
            MOVE 'SSN'                    TO WS-EDIT-VARIABLE-NAME
            PERFORM 1265-EDIT-US-SSN
               THRU 1265-EDIT-US-SSN-EXIT
@@ -3698,15 +3691,18 @@
            MOVE WS-CARD-RID-ACCT-ID TO HV-ACCOUNT-ID
 
            EXEC SQL
-                SELECT CARD_NUM
-                INTO :HV-CARD-NUMBER
-                FROM CARDDAT
-                WHERE CARD_ACCT_ID = :HV-ACCOUNT-ID
+                SELECT XREF_CARD_NUM,
+                       XREF_ACCT_ID
+                INTO :HV-CARD-NUMBER,
+                     :HV-CUST-ID
+                FROM  CXACAIX
+                WHERE XREF_ACCT_ID = :HV-ACCOUNT-ID
            END-EXEC
 
            EVALUATE SQLCODE
                WHEN 0
                   MOVE HV-CARD-NUMBER             TO CDEMO-CARD-NUM
+                  MOVE HV-CUST-ID                 TO CDEMO-CUST-ID
       *           Customer ID will be obtained from account record
                WHEN 100
                   SET INPUT-ERROR                 TO TRUE
@@ -3763,7 +3759,7 @@
                WHEN 0
 
                   SET FOUND-ACCT-IN-MASTER        TO TRUE
-                  MOVE WS-CARD-RID-ACCT-ID        TO CDEMO-CUST-ID
+      *            MOVE WS-CARD-RID-ACCT-ID        TO CDEMO-CUST-ID
       *           Move all fields to ACCOUNT-RECORD structure
                   MOVE HV-ACCT-ID                 TO ACCT-ID
                   MOVE HV-ACCT-STATUS             TO ACCT-ACTIVE-STATUS
