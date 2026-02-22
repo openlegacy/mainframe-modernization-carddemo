@@ -56,8 +56,7 @@
 
        01 HV-CXACAIX-VARS.
          05 HV-XREF-ACCT-ID            PIC S9(11) COMP-3.
-         05 HV-XREF-CARD-NUM           PIC X(16).
-         05 HV-XREF-CUST-ID            PIC X(09).
+         05 HV-XREF-CARD-NUM           PIC X(16).         
 
       *----------------------------------------------------------------*
       * Transaction Type Lookup Table
@@ -696,7 +695,7 @@
       *----------------------------------------------------------------*
        READ-CXACAIX-BY-ACCT.
            EXEC SQL
-               SELECT XREF_ACCT_ID, XREF_CARD_NUM, XREF_CUST_ID
+               SELECT XREF_ACCT_ID, XREF_CARD_NUM
                INTO :HV-XREF-ACCT-ID, :HV-XREF-CARD-NUM                
                FROM CXACAIX
                WHERE XREF_ACCT_ID = :HV-XREF-ACCT-ID
@@ -723,7 +722,7 @@
       *----------------------------------------------------------------*
        READ-CXACAIX-BY-CARD.
            EXEC SQL
-               SELECT XREF_ACCT_ID, XREF_CARD_NUM, XREF_CUST_ID
+               SELECT XREF_ACCT_ID, XREF_CARD_NUM
                INTO :HV-XREF-ACCT-ID, :HV-XREF-CARD-NUM
                WHERE XREF_CARD_NUM = :HV-XREF-CARD-NUM
            END-EXEC
