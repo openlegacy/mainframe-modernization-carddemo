@@ -144,7 +144,7 @@
        INSERT-USER-DB2-TABLE.
 
            EXEC SQL
-               INSERT INTO USERSEC
+               INSERT INTO DEMOUSR.USERSEC
                (USR_ID, USR_FNAME, USR_LNAME, USR_PWD, USR_TYPE)
                VALUES
                (:SEC-USR-ID, :SEC-USR-FNAME, :SEC-USR-LNAME,

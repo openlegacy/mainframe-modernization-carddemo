@@ -325,7 +325,7 @@
                SELECT USR_ID, USR_FNAME, USR_LNAME, USR_PWD, USR_TYPE
                INTO :SEC-USR-ID, :SEC-USR-FNAME, :SEC-USR-LNAME,
                     :SEC-USR-PWD, :SEC-USR-TYPE
-               FROM USERSEC
+               FROM DEMOUSR.USERSEC
                WHERE USR_ID = :SEC-USR-ID
            END-EXEC.
 
@@ -359,7 +359,7 @@
        UPDATE-USER-SEC-TABLE.
 
            EXEC SQL
-               UPDATE USERSEC
+               UPDATE DEMOUSR.USERSEC
                SET USR_FNAME = :SEC-USR-FNAME,
                    USR_LNAME = :SEC-USR-LNAME,
                    USR_PWD   = :SEC-USR-PWD,

@@ -67,14 +67,14 @@
       * DB2 Cursor Declarations
            EXEC SQL DECLARE USER_CURSOR CURSOR FOR
                SELECT USR_ID, USR_FNAME, USR_LNAME, USR_TYPE
-               FROM USERSEC
+               FROM DEMOUSR.USERSEC
                WHERE USR_ID >= :SEC-USR-ID
                ORDER BY USR_ID
            END-EXEC.
 
            EXEC SQL DECLARE USER_CURSOR_PREV CURSOR FOR
                SELECT USR_ID, USR_FNAME, USR_LNAME, USR_TYPE
-               FROM USERSEC
+               FROM DEMOUSR.USERSEC
                WHERE USR_ID <= :SEC-USR-ID
                ORDER BY USR_ID DESC
            END-EXEC.

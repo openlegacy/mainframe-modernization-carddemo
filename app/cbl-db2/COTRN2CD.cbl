@@ -318,7 +318,7 @@
            EXEC SQL
                SELECT MAX(TRAN_ID)
                INTO :HV-MAX-TRAN-ID
-               FROM ALAINL.TRANSACT
+               FROM DEMOUSR.TRANSACT
            END-EXEC
 
            EVALUATE SQLCODE
@@ -348,7 +348,7 @@
       *----------------------------------------------------------------*
        WRITE-TRANSACT-DB2.
            EXEC SQL
-               INSERT INTO ALAINL.TRANSACT
+               INSERT INTO DEMOUSR.TRANSACT
                (TRAN_ID, TRAN_TYPE_CD, TRAN_CAT_CD, TRAN_SOURCE,
                 TRAN_DESC, TRAN_AMT, TRAN_MERCHANT_ID,
                 TRAN_MERCHANT_NAME,

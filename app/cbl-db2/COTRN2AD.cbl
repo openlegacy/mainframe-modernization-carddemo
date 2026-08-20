@@ -699,7 +699,7 @@
                SELECT XREF_ACCT_ID, XREF_CARD_NUM, XREF_CUST_ID
                INTO :HV-XREF-ACCT-ID, :HV-XREF-CARD-NUM,
                 :HV-XREF-CUST-ID
-               FROM ALAINL.CXACAIX
+               FROM DEMOUSR.CXACAIX
                WHERE XREF_ACCT_ID = :HV-XREF-ACCT-ID
            END-EXEC
 
@@ -727,7 +727,7 @@
                SELECT XREF_ACCT_ID, XREF_CARD_NUM, XREF_CUST_ID
                INTO :HV-XREF-ACCT-ID, :HV-XREF-CARD-NUM,
                :HV-XREF-CUST-ID
-               FROM ALAINL.CXACAIX
+               FROM DEMOUSR.CXACAIX
                WHERE XREF_CARD_NUM = :HV-XREF-CARD-NUM
            END-EXEC
 

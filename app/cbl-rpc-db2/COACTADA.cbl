@@ -780,7 +780,7 @@
            EXEC SQL
                 SELECT COUNT(*)
                 INTO :HV-CUST-COUNT
-                FROM CUSTDAT
+                FROM DEMOUSR.CUSTDAT
                 WHERE CUST_ID = :HV-CUST-EXISTS-ID
            END-EXEC
 
@@ -848,7 +848,7 @@
            EXEC SQL
                 SELECT MAX(ACCT_ID)
                 INTO :HV-MAX-ACCT-ID :HV-MAX-ACCT-ID-IND
-                FROM ACCTDAT
+                FROM DEMOUSR.ACCTDAT
            END-EXEC
 
            EVALUATE SQLCODE
@@ -915,7 +915,7 @@
            END-IF
 
            EXEC SQL
-                INSERT INTO ACCTDAT (
+                INSERT INTO DEMOUSR.ACCTDAT (
                     ACCT_ID,
                     ACCT_ACTIVE_STATUS,
                     ACCT_CURR_BAL,
@@ -977,7 +977,7 @@
            COMPUTE HV-XREF-CUST-ID = FUNCTION NUMVAL(LK-ACCT-IN-CUST-ID)
 
            EXEC SQL
-                INSERT INTO CXACAIX (
+                INSERT INTO DEMOUSR.CXACAIX (
                     XREF_ACCT_ID,
                     XREF_CARD_NUM,
                     XREF_CUST_ID

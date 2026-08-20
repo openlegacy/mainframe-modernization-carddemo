@@ -191,8 +191,9 @@
                        C.CARD_EXPIRY_DATE,
                        C.CARD_CREAT_DATE,
                        C.CARD_CREAT_USER
-                FROM   CARDDAT C
-                INNER JOIN CXACAIX X ON C.CARD_NUM = X.XREF_CARD_NUM
+                FROM   DEMOUSR.CARDDAT C
+                INNER JOIN DEMOUSR.CXACAIX X
+                     ON C.CARD_NUM = X.XREF_CARD_NUM
                 WHERE  X.XREF_ACCT_ID = :HV-ACCT-ID
                 ORDER BY C.CARD_NUM
                 FETCH FIRST 10 ROWS ONLY

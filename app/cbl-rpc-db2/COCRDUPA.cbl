@@ -291,7 +291,7 @@
                        :HV-CARD-EMBOSSED-NAME,
                        :HV-CARD-EXPIRY-DATE,
                        :HV-CARD-ACTIVE-STATUS
-                FROM   CARDDAT
+                FROM   DEMOUSR.CARDDAT
                 WHERE  CARD_NUM = :HV-CARD-NUM
            END-EXEC
 
@@ -335,7 +335,7 @@
                        :HV-CARD-EMBOSSED-NAME,
                        :HV-CARD-EXPIRY-DATE,
                        :HV-CARD-ACTIVE-STATUS
-                FROM   CARDDAT
+                FROM   DEMOUSR.CARDDAT
                 WHERE  CARD_NUM = :HV-CARD-NUM
            END-EXEC
 
@@ -417,7 +417,7 @@
       * Perform optimistic update with original values check
       *****************************************************************
            EXEC SQL
-                UPDATE CARDDAT
+                UPDATE DEMOUSR.CARDDAT
                 SET    CARD_EMBOSSED_NAME = :HV-CARD-EMBOSSED-NAME,
                        CARD_EXPIRY_DATE = :HV-CARD-EXPIRY-DATE,
                        CARD_ACTIVE_STATUS = :HV-CARD-ACTIVE-STATUS

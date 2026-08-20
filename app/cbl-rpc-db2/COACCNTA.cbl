@@ -189,8 +189,9 @@
                        A.ACCT_CURR_CYC_DEBIT,
                        A.ACCT_ADDR_ZIP,
                        A.ACCT_GROUP_ID
-                FROM   ACCTDAT A
-                INNER JOIN CXACAIX X ON A.ACCT_ID = X.XREF_ACCT_ID
+                FROM   DEMOUSR.ACCTDAT A
+                INNER JOIN DEMOUSR.CXACAIX X
+                     ON A.ACCT_ID = X.XREF_ACCT_ID
                 WHERE  X.XREF_CUST_ID = :HV-CUST-ID
                 ORDER BY A.ACCT_ID
                 FETCH FIRST 10 ROWS ONLY

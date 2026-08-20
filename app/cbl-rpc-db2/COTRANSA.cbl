@@ -168,7 +168,7 @@
                        TRAN_CARD_NUM,
                        TRAN_ORIG_TS,
                        TRAN_PROC_TS
-                FROM   TRANSACT
+                FROM   DEMOUSR.TRANSACT
                 WHERE  TRAN_CARD_NUM = :HV-CARD-NUM
                 ORDER BY TRAN_PROC_TS DESC
                 FETCH FIRST 45 ROWS ONLY

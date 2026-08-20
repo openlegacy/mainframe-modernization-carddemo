@@ -173,7 +173,7 @@
                SELECT CARD_NUM,
                       CARD_ACCT_ID,
                       CARD_ACTIVE_STATUS
-               FROM ALAINL.CARDDAT
+               FROM DEMOUSR.CARDDAT
                WHERE CARD_NUM >= :HV-SEARCH-CARD-NUM
                ORDER BY CARD_NUM
            END-EXEC.
@@ -183,7 +183,7 @@
                SELECT CARD_NUM,
                       CARD_ACCT_ID,
                       CARD_ACTIVE_STATUS
-               FROM ALAINL.CARDDAT
+               FROM DEMOUSR.CARDDAT
                WHERE CARD_NUM >= :HV-SEARCH-CARD-NUM
                AND CARD_ACCT_ID = :HV-SEARCH-ACCT-ID
                ORDER BY CARD_NUM
@@ -194,7 +194,7 @@
                SELECT CARD_NUM,
                       CARD_ACCT_ID,
                       CARD_ACTIVE_STATUS
-               FROM ALAINL.CARDDAT
+               FROM DEMOUSR.CARDDAT
                WHERE CARD_NUM < :HV-SEARCH-CARD-NUM
                ORDER BY CARD_NUM DESC
            END-EXEC.

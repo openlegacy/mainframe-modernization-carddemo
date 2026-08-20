@@ -68,14 +68,14 @@
       * DB2 Cursor Declaration
            EXEC SQL DECLARE USER_CURSOR CURSOR FOR
                SELECT USR_ID, USR_FNAME, USR_LNAME, USR_TYPE
-               FROM USERSEC
+               FROM DEMOUSR.USERSEC
                WHERE USR_ID >= :SEC-USR-ID
                ORDER BY USR_ID
            END-EXEC.
 
            EXEC SQL DECLARE USER_CURSOR_PREV CURSOR FOR
                SELECT USR_ID, USR_FNAME, USR_LNAME, USR_TYPE
-               FROM USERSEC
+               FROM DEMOUSR.USERSEC
                WHERE USR_ID <= :SEC-USR-ID
                ORDER BY USR_ID DESC
            END-EXEC.
@@ -137,6 +137,17 @@
                PERFORM RETURN-TO-PREV-SCREEN
            ELSE
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
+               IF CDEMO-USER-ID = SPACES OR
+                  (NOT CDEMO-USRTYP-ADMIN AND
+                   NOT CDEMO-USRTYP-USER)
+                   MOVE 'COSGN00D' TO CDEMO-TO-PROGRAM
+                   EXEC CICS XCTL
+                       PROGRAM(CDEMO-TO-PROGRAM)
+                   END-EXEC
+               ELSE
+                   CONTINUE
+               END-IF
+
                IF NOT CDEMO-PGM-REENTER
                    SET CDEMO-PGM-REENTER    TO TRUE
                    MOVE LOW-VALUES          TO COUSR0AO

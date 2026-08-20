@@ -328,7 +328,7 @@
            EXEC SQL
                 SELECT CARD_NUM
                 INTO :HV-CARD-NUMBER
-                FROM CARDDAT
+                FROM DEMOUSR.CARDDAT
                 WHERE CARD_ACCT_ID = :HV-ACCOUNT-ID
                 ORDER BY CARD_CREAT_DATE DESC   
                 FETCH FIRST 1 ROW ONLY
@@ -384,7 +384,7 @@
                      :HV-ACCT-REISSUE-DT, :HV-ACCT-CYC-CREDIT,
                      :HV-ACCT-CYC-DEBIT, :HV-ACCT-ZIP,
                      :HV-ACCT-GROUP-ID
-                FROM ACCTDAT
+                FROM DEMOUSR.ACCTDAT
                 WHERE ACCT_ID = :HV-ACCOUNT-ID
            END-EXEC
 
@@ -460,7 +460,7 @@
                      :HV-CUST-GOVT-ID, :HV-CUST-DOB,
                      :HV-CUST-EFT-ID, :HV-CUST-PRI-HOLDER,
                      :HV-CUST-FICO
-                FROM CUSTDAT
+                FROM DEMOUSR.CUSTDAT
                 WHERE CUST_ID = :HV-CUSTOMER-ID
            END-EXEC
 

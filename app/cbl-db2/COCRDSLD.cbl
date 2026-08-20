@@ -788,7 +788,7 @@
                        :HV-CARD-EMBOSSED-NAME,
                        :HV-CARD-EXPIRAION-DATE,
                        :HV-CARD-ACTIVE-STATUS
-                FROM   ALAINL.CARDDAT
+                FROM   DEMOUSR.CARDDAT
                 WHERE  CARD_NUM = :HV-SEARCH-CARD-NUM
            END-EXEC
 
@@ -846,7 +846,7 @@
                        :HV-CARD-EMBOSSED-NAME,
                        :HV-CARD-EXPIRAION-DATE,
                        :HV-CARD-ACTIVE-STATUS
-                FROM   ALAINL.CARDDAT
+                FROM   DEMOUSR.CARDDAT
                 WHERE  CARD_ACCT_ID = :HV-SEARCH-ACCT-ID
            END-EXEC
 

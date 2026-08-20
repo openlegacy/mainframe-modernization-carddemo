@@ -2280,7 +2280,7 @@
                      :HV-ACCT-REISSUE-DT, :HV-ACCT-CYC-CREDIT,
                      :HV-ACCT-CYC-DEBIT, :HV-ACCT-ZIP,
                      :HV-ACCT-GROUP-ID
-                FROM ACCTDAT
+                FROM DEMOUSR.ACCTDAT
                 WHERE ACCT_ID = :HV-ACCOUNT-ID
            END-EXEC
 
@@ -2323,7 +2323,7 @@
                      :HV-CUST-GOVT-ID, :HV-CUST-DOB,
                      :HV-CUST-EFT-ID, :HV-CUST-PRI-HOLDER,
                      :HV-CUST-FICO
-                FROM CUSTDAT
+                FROM DEMOUSR.CUSTDAT
                 WHERE CUST_ID = :HV-CUSTOMER-ID
            END-EXEC
 
@@ -2390,7 +2390,7 @@
            MOVE LK-IN-ACCT-GROUP-ID TO HV-ACCT-GROUP-ID
 
            EXEC SQL
-                UPDATE ACCTDAT
+                UPDATE DEMOUSR.ACCTDAT
                 SET ACCT_ACTIVE_STATUS = :HV-ACCT-STATUS,
                     ACCT_CURR_BAL = :HV-ACCT-CURR-BAL,
                     ACCT_CREDIT_LIMIT = :HV-ACCT-CREDIT-LMT,
@@ -2472,7 +2472,7 @@
            MOVE LK-IN-CUST-FICO-SCORE TO HV-CUST-FICO
 
            EXEC SQL
-                UPDATE CUSTDAT
+                UPDATE DEMOUSR.CUSTDAT
                 SET CUST_FIRST_NAME = :HV-CUST-FNAME,
                     CUST_MIDDLE_NAME = :HV-CUST-MNAME,
                     CUST_LAST_NAME = :HV-CUST-LNAME,

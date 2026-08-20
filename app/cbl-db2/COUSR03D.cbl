@@ -272,7 +272,7 @@
                SELECT USR_ID, USR_FNAME, USR_LNAME, USR_TYPE
                INTO :SEC-USR-ID, :SEC-USR-FNAME, :SEC-USR-LNAME,
                     :SEC-USR-TYPE
-               FROM USERSEC
+               FROM DEMOUSR.USERSEC
                WHERE USR_ID = :SEC-USR-ID
            END-EXEC.
 
@@ -306,7 +306,7 @@
        DELETE-USER-SEC-TABLE.
 
            EXEC SQL
-               DELETE FROM USERSEC
+               DELETE FROM DEMOUSR.USERSEC
                WHERE USR_ID = :SEC-USR-ID
            END-EXEC.
 

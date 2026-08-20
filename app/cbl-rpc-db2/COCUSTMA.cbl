@@ -192,7 +192,7 @@
                        :HV-CUST-EFT-ACCOUNT-ID,
                        :HV-CUST-PRI-CARD-HOLDER-IND,
                        :HV-CUST-FICO-CREDIT-SCORE
-                FROM   CUSTDAT
+                FROM   DEMOUSR.CUSTDAT
                 WHERE  CUST_ID = :HV-CUST-ID
            END-EXEC
 

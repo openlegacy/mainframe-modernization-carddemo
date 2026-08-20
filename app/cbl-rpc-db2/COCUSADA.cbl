@@ -1177,7 +1177,7 @@
               EXEC SQL
                    SELECT COUNT(*)
                    INTO :HV-TARGET-COUNT
-                   FROM CUSTDAT
+                   FROM DEMOUSR.CUSTDAT
                    WHERE CUST_ID = :HV-TARGET-CUST-ID
               END-EXEC
 
@@ -1211,7 +1211,7 @@
            EXEC SQL
                 SELECT MAX(CUST_ID)
                 INTO :HV-MAX-CUST-ID :HV-MAX-CUST-ID-IND
-                FROM CUSTDAT
+                FROM DEMOUSR.CUSTDAT
            END-EXEC
 
            EVALUATE SQLCODE
@@ -1278,7 +1278,7 @@
            MOVE LK-IN-FICO           TO HV-CUST-FICO
 
            EXEC SQL
-                INSERT INTO CUSTDAT (
+                INSERT INTO DEMOUSR.CUSTDAT (
                     CUST_ID,
                     CUST_FIRST_NAME,
                     CUST_MIDDLE_NAME,
