@@ -74,6 +74,23 @@
 
            SET ERR-FLG-OFF TO TRUE
 
+           IF EIBCALEN > 0
+               MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
+               IF CDEMO-USER-ID NOT = SPACES AND
+                  (CDEMO-USRTYP-ADMIN OR
+                   CDEMO-USRTYP-USER)
+                   IF CDEMO-USRTYP-ADMIN
+                       EXEC CICS XCTL
+                           PROGRAM('COADM01C')
+                       END-EXEC
+                   ELSE
+                       EXEC CICS XCTL
+                           PROGRAM('COMEN01C')
+                       END-EXEC
+                   END-IF
+               END-IF
+           END-IF
+
            MOVE SPACES TO WS-MESSAGE
                           ERRMSGO OF COSGN0AO
 

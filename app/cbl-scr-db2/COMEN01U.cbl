@@ -84,6 +84,17 @@
                PERFORM RETURN-TO-SIGNON-SCREEN
            ELSE
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
+               IF CDEMO-USER-ID = SPACES OR
+                  (NOT CDEMO-USRTYP-ADMIN AND
+                   NOT CDEMO-USRTYP-USER)
+                   MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
+                   EXEC CICS XCTL
+                       PROGRAM(CDEMO-TO-PROGRAM)
+                   END-EXEC
+               ELSE
+                   CONTINUE
+               END-IF
+
                IF NOT CDEMO-PGM-REENTER
                    SET CDEMO-PGM-REENTER    TO TRUE
                    MOVE LOW-VALUES          TO COMEN1AO

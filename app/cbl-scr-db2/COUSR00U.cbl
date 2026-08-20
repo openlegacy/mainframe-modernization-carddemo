@@ -85,6 +85,17 @@
            ELSE
       * Has commarea - process it
                MOVE DFHCOMMAREA(1:EIBCALEN) TO CARDDEMO-COMMAREA
+               IF CDEMO-USER-ID = SPACES OR
+                  (NOT CDEMO-USRTYP-ADMIN AND
+                   NOT CDEMO-USRTYP-USER)
+                   MOVE 'COSGN00U' TO CDEMO-TO-PROGRAM
+                   EXEC CICS XCTL
+                       PROGRAM(CDEMO-TO-PROGRAM)
+                   END-EXEC
+               ELSE
+                   CONTINUE
+               END-IF
+
                IF NOT CDEMO-PGM-REENTER
       * First time with commarea - display initial screen
                    SET CDEMO-PGM-REENTER TO TRUE
