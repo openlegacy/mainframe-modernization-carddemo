@@ -1282,12 +1282,21 @@
                       MOVE CARD-ACCT-ID     TO WS-CA-LAST-CARD-ACCT-ID
                       MOVE CARD-NUM         TO WS-CA-LAST-CARD-NUM
 
-                      EXEC SQL
-                        FETCH CARD_CURSOR
-                        INTO :HV-CARD-NUM,
-                             :HV-CARD-ACCT-ID,
-                             :HV-CARD-ACTIVE-STATUS
-                      END-EXEC
+                      IF HV-ACCT-FILTER-FLAG = SPACE
+                        EXEC SQL
+                          FETCH CARD_CURSOR_ALL
+                          INTO :HV-CARD-NUM,
+                               :HV-CARD-ACCT-ID,
+                               :HV-CARD-ACTIVE-STATUS
+                        END-EXEC
+                      ELSE
+                        EXEC SQL
+                          FETCH CARD_CURSOR_FILTERED
+                          INTO :HV-CARD-NUM,
+                               :HV-CARD-ACCT-ID,
+                               :HV-CARD-ACTIVE-STATUS
+                        END-EXEC
+                      END-IF
 
                       MOVE SQLCODE TO WS-SQLCODE
                       EVALUATE WS-SQLCODE

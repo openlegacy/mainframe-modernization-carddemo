@@ -3697,6 +3697,7 @@
                      :HV-CUST-ID
                 FROM  CXACAIX
                 WHERE XREF_ACCT_ID = :HV-ACCOUNT-ID
+                FETCH FIRST 1 ROW ONLY
            END-EXEC
 
            EVALUATE SQLCODE
